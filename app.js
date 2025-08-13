@@ -460,10 +460,10 @@ async function syncData() {
     }
     
     try {
-        App.showNotification('Syncing data from ShipStation...', 'info');
+        App.showNotification('Syncing order data from ShipStation...', 'info');
         
-        // Fetch shipments
-        const response = await fetch('/api/shipments', {
+        // Fetch orders (not shipments - captures all sales including freight)
+        const response = await fetch('/api/orders', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -473,13 +473,13 @@ async function syncData() {
         });
         
         if (!response.ok) {
-            throw new Error('Failed to fetch shipments');
+            throw new Error('Failed to fetch orders');
         }
         
         const data = await response.json();
         
         // Process the data with our SKU lookup
-        const processed = App.processShipmentData(data.consolidatedItems);
+        const processed = App.processOrderData(data.consolidatedItems);
         App.data.currentSync = processed;
         
         // Update sync results UI
@@ -500,11 +500,12 @@ async function syncData() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 type: 'sync',
-                message: `Synced ${data.totalOrders} orders, ${processed.length} unique SKUs`,
+                message: `Synced ${data.totalOrders} orders, ${processed.length} unique SKUs (excludes cancelled orders)`,
                 data: {
                     orders: data.totalOrders,
                     skus: processed.length,
                     matched: processed.filter(item => item.matched).length,
+                    orderStatuses: data.orderStatuses,
                     dateRange: { startDate, endDate }
                 }
             })
@@ -521,8 +522,8 @@ async function syncData() {
     }
 }
 
-// Process shipment data with SKU matching
-App.processShipmentData = function(consolidatedItems) {
+// Process order data with SKU matching
+App.processOrderData = function(consolidatedItems) {
     const results = [];
     const skuLookup = {};
     
@@ -640,7 +641,7 @@ async function generateIIF() {
 async function exportData() {
     // For now, redirect to sync tab
     showTab('sync');
-    App.showNotification('Please sync data first, then generate IIF file', 'info');
+    App.showNotification('Please sync order data first, then generate IIF file', 'info');
 }
 
 // Render history
