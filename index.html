@@ -310,7 +310,6 @@ PALLET RACK:CAO316
                     <button onclick="setYesterday()">Set to Yesterday</button>
                     <button onclick="setLastWeek()" class="secondary">Last 7 Days</button>
                     <button onclick="setLastMonth()" class="secondary">Last 30 Days</button>
-                    <button onclick="setLastYearDate()" class="secondary">Aug 12, 2024</button>
                 </div>
             </div>
             
@@ -413,12 +412,10 @@ PALLET RACK:CAO316
                     // Extract the actual SKU after the colon
                     const parts = line.split(':');
                     const actualSku = parts[parts.length - 1].trim();
-                    // Store with lowercase key for case-insensitive lookup
-                    skuLookupTable[actualSku.toLowerCase()] = line;
+                    skuLookupTable[actualSku] = line;
                 } else {
                     // Standalone SKU without subitem
-                    // Store with lowercase key for case-insensitive lookup
-                    skuLookupTable[line.toLowerCase()] = line;
+                    skuLookupTable[line] = line;
                 }
                 count++;
             });
@@ -433,7 +430,6 @@ PALLET RACK:CAO316
             const dateStr = yesterday.toISOString().split('T')[0];
             document.getElementById('startDate').value = dateStr;
             document.getElementById('endDate').value = dateStr;
-            console.log('Set date range to yesterday:', dateStr);
         }
         
         function setLastWeek() {
@@ -450,14 +446,6 @@ PALLET RACK:CAO316
             start.setDate(start.getDate() - 30);
             document.getElementById('startDate').value = start.toISOString().split('T')[0];
             document.getElementById('endDate').value = end.toISOString().split('T')[0];
-        }
-        
-        function setLastYearDate() {
-            // Set to August 12, 2024
-            const dateStr = '2024-08-12';
-            document.getElementById('startDate').value = dateStr;
-            document.getElementById('endDate').value = dateStr;
-            console.log('Set date range to August 12, 2024:', dateStr);
         }
         
         // Main processing function
@@ -481,12 +469,6 @@ PALLET RACK:CAO316
             showStatus('processStatus', 'Fetching shipments from ShipStation...', 'info');
             showProgress(25);
             
-            const requestData = {
-                startDate: startDate + 'T00:00:01',
-                endDate: endDate + 'T23:59:59'
-            };
-            console.log('Sending request to ShipStation API:', requestData);
-            
             try {
                 // Fetch shipments from API
                 const response = await fetch('/api/shipments', {
@@ -494,17 +476,17 @@ PALLET RACK:CAO316
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(requestData)
+                    body: JSON.stringify({
+                        startDate: startDate + 'T00:00:01',
+                        endDate: endDate + 'T23:59:59'
+                    })
                 });
                 
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('API Error Response:', errorText);
-                    throw new Error(`Failed to fetch shipments (${response.status}): ${errorText}`);
+                    throw new Error('Failed to fetch shipments');
                 }
                 
                 const data = await response.json();
-                console.log('API Response:', data);
                 showProgress(50);
                 
                 // Process the consolidated data
@@ -515,15 +497,6 @@ PALLET RACK:CAO316
                 displayStatistics(data, processedData);
                 displayPreview(processedData);
                 
-                // Check if there are any matched items to process
-                const matchedItems = processedData.filter(item => item.matched);
-                
-                if (matchedItems.length === 0) {
-                    showStatus('processStatus', 'No shipments found for the selected date range or no SKUs matched. Try a different date range or check your SKU lookup table.', 'error');
-                    showProgress(100);
-                    return;
-                }
-                
                 // Generate IIF file
                 showStatus('processStatus', 'Generating IIF file...', 'info');
                 const iifResponse = await fetch('/api/generate-iif', {
@@ -532,7 +505,7 @@ PALLET RACK:CAO316
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        items: matchedItems,
+                        items: processedData.filter(item => item.matched),
                         inventoryAccount: document.getElementById('inventoryAccount').value,
                         startDate,
                         endDate
@@ -565,8 +538,7 @@ PALLET RACK:CAO316
             const results = [];
             
             for (const [sku, quantity] of Object.entries(consolidatedItems)) {
-                // Use lowercase for case-insensitive lookup
-                const qbItem = skuLookupTable[sku.toLowerCase()];
+                const qbItem = skuLookupTable[sku];
                 results.push({
                     sku,
                     qbItem: qbItem || null,
@@ -592,8 +564,9 @@ PALLET RACK:CAO316
             const previewBody = document.getElementById('previewBody');
             previewBody.innerHTML = '';
             
-            // Show ALL items in preview
-            data.forEach(item => {
+            // Show first 10 items as preview
+            const previewItems = data.slice(0, 10);
+            previewItems.forEach(item => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${item.sku}</td>
@@ -605,6 +578,14 @@ PALLET RACK:CAO316
                 `;
                 previewBody.appendChild(row);
             });
+            
+            if (data.length > 10) {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td colspan="4" style="text-align: center; font-style: italic;">
+                    ... and ${data.length - 10} more items
+                </td>`;
+                previewBody.appendChild(row);
+            }
             
             document.getElementById('previewSection').style.display = 'block';
         }

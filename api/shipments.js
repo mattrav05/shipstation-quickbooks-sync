@@ -27,14 +27,6 @@ module.exports = async (req, res) => {
             return res.status(400).json({ error: 'Start date and end date are required' });
         }
         
-        // Validate API credentials
-        if (!SHIPSTATION_API_KEY || !SHIPSTATION_API_SECRET) {
-            console.error('Missing ShipStation API credentials');
-            return res.status(500).json({ error: 'ShipStation API credentials not configured' });
-        }
-        
-        console.log('Processing request:', { startDate, endDate });
-        
         // Create auth header
         const auth = Buffer.from(`${SHIPSTATION_API_KEY}:${SHIPSTATION_API_SECRET}`).toString('base64');
         
@@ -47,15 +39,6 @@ module.exports = async (req, res) => {
         // Fetch all pages of shipments
         while (hasMorePages) {
             const url = `https://ssapi.shipstation.com/shipments`;
-            const params = {
-                shipDateStart: startDate,
-                shipDateEnd: endDate,
-                page: page,
-                pageSize: pageSize,
-                includeShipmentItems: true
-            };
-            
-            console.log(`Fetching page ${page} with params:`, params);
             
             try {
                 const response = await axios.get(url, {
@@ -63,19 +46,19 @@ module.exports = async (req, res) => {
                         'Authorization': `Basic ${auth}`,
                         'Content-Type': 'application/json'
                     },
-                    params: params
+                    params: {
+                        shipDateStart: startDate,
+                        shipDateEnd: endDate,
+                        page: page,
+                        pageSize: pageSize,
+                        includeShipmentItems: true
+                    }
                 });
                 
                 const data = response.data;
-                console.log(`Page ${page} response:`, {
-                    shipmentCount: data.shipments ? data.shipments.length : 0,
-                    totalPages: data.pages || 'unknown',
-                    currentPage: data.page || page
-                });
                 
                 if (data.shipments && data.shipments.length > 0) {
                     allShipments = allShipments.concat(data.shipments);
-                    console.log(`Added ${data.shipments.length} shipments. Total so far: ${allShipments.length}`);
                 }
                 
                 // Check if there are more pages
@@ -91,7 +74,6 @@ module.exports = async (req, res) => {
                 
             } catch (error) {
                 console.error(`Error fetching page ${page}:`, error.message);
-                console.error('Full error details:', error.response?.data || error);
                 hasMorePages = false;
             }
         }
@@ -116,9 +98,6 @@ module.exports = async (req, res) => {
                 });
             }
         });
-        
-        // Log summary for debugging
-        console.log(`API Summary: ${allShipments.length} shipments, ${totalOrders} orders, ${Object.keys(consolidatedItems).length} unique SKUs`);
         
         // Return consolidated data
         return res.status(200).json({
