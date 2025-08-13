@@ -412,10 +412,12 @@ PALLET RACK:CAO316
                     // Extract the actual SKU after the colon
                     const parts = line.split(':');
                     const actualSku = parts[parts.length - 1].trim();
-                    skuLookupTable[actualSku] = line;
+                    // Store with lowercase key for case-insensitive lookup
+                    skuLookupTable[actualSku.toLowerCase()] = line;
                 } else {
                     // Standalone SKU without subitem
-                    skuLookupTable[line] = line;
+                    // Store with lowercase key for case-insensitive lookup
+                    skuLookupTable[line.toLowerCase()] = line;
                 }
                 count++;
             });
@@ -538,7 +540,8 @@ PALLET RACK:CAO316
             const results = [];
             
             for (const [sku, quantity] of Object.entries(consolidatedItems)) {
-                const qbItem = skuLookupTable[sku];
+                // Use lowercase for case-insensitive lookup
+                const qbItem = skuLookupTable[sku.toLowerCase()];
                 results.push({
                     sku,
                     qbItem: qbItem || null,
@@ -564,9 +567,8 @@ PALLET RACK:CAO316
             const previewBody = document.getElementById('previewBody');
             previewBody.innerHTML = '';
             
-            // Show first 10 items as preview
-            const previewItems = data.slice(0, 10);
-            previewItems.forEach(item => {
+            // Show ALL items in preview
+            data.forEach(item => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${item.sku}</td>
@@ -578,14 +580,6 @@ PALLET RACK:CAO316
                 `;
                 previewBody.appendChild(row);
             });
-            
-            if (data.length > 10) {
-                const row = document.createElement('tr');
-                row.innerHTML = `<td colspan="4" style="text-align: center; font-style: italic;">
-                    ... and ${data.length - 10} more items
-                </td>`;
-                previewBody.appendChild(row);
-            }
             
             document.getElementById('previewSection').style.display = 'block';
         }
