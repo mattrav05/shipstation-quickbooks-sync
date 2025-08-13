@@ -32,7 +32,8 @@
       "Bash(node:*)",
       "Bash(npm install)",
       "WebFetch(domain:www.shipstation.com)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(supabase:*)"
     ],
     "deny": [],
     "ask": []
