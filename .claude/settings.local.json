@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:claude.ai)",
+      "Bash(rm:*)",
+      "Bash(mkdir:*)",
+      "Bash(gh:*)",
+      "Bash(git --version)",
+      "Bash(whereis:*)",
+      "Bash(where gh)",
+      "Bash(echo $PATH)",
+      "Bash(powershell.exe:*)",
+      "Bash(cmd.exe /c \"where gh\")",
+      "Bash(export PATH=$PATH:\"/mnt/c/Program Files/GitHub CLI\")",
+      "Bash(\"/mnt/c/Program Files/GitHub CLI/gh.exe\" auth status)",
+      "Bash(\"/mnt/c/Program Files/GitHub CLI/gh.exe\" auth login)",
+      "Bash(git init:*)",
+      "Bash(git branch:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

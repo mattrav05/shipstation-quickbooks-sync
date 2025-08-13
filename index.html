@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShipStation to QuickBooks IIF Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 16px;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .section h2::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 2px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        input[type="date"],
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e1e4e8;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        input[type="date"]:focus,
+        input[type="text"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        button.secondary {
+            background: #6c757d;
+        }
+        
+        button.success {
+            background: #28a745;
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border-left: 4px solid #17a2b8;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+        
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .progress {
+            background: #e9ecef;
+            border-radius: 6px;
+            height: 8px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .progress-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100%;
+            width: 0;
+            transition: width 0.3s;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #e1e4e8;
+        }
+        
+        .stat-card h3 {
+            color: #666;
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        
+        .stat-card .value {
+            color: #333;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        .preview-table th,
+        .preview-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #e1e4e8;
+        }
+        
+        .preview-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .preview-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        #downloadSection {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            background: #d4edda;
+            border-radius: 6px;
+            text-align: center;
+        }
+        
+        #downloadLink {
+            display: inline-block;
+            padding: 12px 30px;
+            background: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            margin-top: 10px;
+        }
+        
+        #downloadLink:hover {
+            background: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>ShipStation to QuickBooks IIF Generator</h1>
+            <p>Generate IIF files from ShipStation data for QuickBooks Desktop import</p>
+        </div>
+        
+        <div class="content">
+            <!-- QuickBooks SKU Configuration -->
+            <div class="section">
+                <h2>QuickBooks SKU Configuration</h2>
+                <div class="form-group">
+                    <label for="qbSkuList">Paste your QuickBooks SKU list (with subitem prefixes):</label>
+                    <textarea id="qbSkuList" placeholder="Example:
+-USMICH-:USM1020
+-USMICH-:USM1030
+FANUC ELITE:FR-112276
+PALLET RACK:CAO316
+..."></textarea>
+                </div>
+                <button onclick="buildSkuLookup()" class="secondary">Build SKU Lookup Table</button>
+                <div id="skuStatus" class="status info"></div>
+            </div>
+            
+            <!-- Date Range Selection -->
+            <div class="section">
+                <h2>Date Range Selection</h2>
+                <div class="form-group">
+                    <label for="startDate">Start Date:</label>
+                    <input type="date" id="startDate" />
+                </div>
+                <div class="form-group">
+                    <label for="endDate">End Date:</label>
+                    <input type="date" id="endDate" />
+                </div>
+                <div class="button-group">
+                    <button onclick="setYesterday()">Set to Yesterday</button>
+                    <button onclick="setLastWeek()" class="secondary">Last 7 Days</button>
+                    <button onclick="setLastMonth()" class="secondary">Last 30 Days</button>
+                </div>
+            </div>
+            
+            <!-- QuickBooks Configuration -->
+            <div class="section">
+                <h2>QuickBooks Settings</h2>
+                <div class="form-group">
+                    <label for="inventoryAccount">Inventory Account Name:</label>
+                    <input type="text" id="inventoryAccount" value="1500 · Inventory" />
+                </div>
+            </div>
+            
+            <!-- Process Section -->
+            <div class="section">
+                <h2>Generate IIF File</h2>
+                <button onclick="processData()" id="processBtn">
+                    Pull Data & Generate IIF
+                </button>
+                <div id="processStatus" class="status"></div>
+                <div class="progress" id="progressBar" style="display: none;">
+                    <div class="progress-bar" id="progressBarFill"></div>
+                </div>
+                
+                <!-- Statistics -->
+                <div id="statistics" style="display: none;">
+                    <div class="stats">
+                        <div class="stat-card">
+                            <h3>Total Orders</h3>
+                            <div class="value" id="totalOrders">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Unique SKUs</h3>
+                            <div class="value" id="uniqueSkus">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Matched SKUs</h3>
+                            <div class="value" id="matchedSkus">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Skipped SKUs</h3>
+                            <div class="value" id="skippedSkus">0</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Preview Table -->
+                <div id="previewSection" style="display: none;">
+                    <h3 style="margin-top: 20px;">Data Preview:</h3>
+                    <table class="preview-table" id="previewTable">
+                        <thead>
+                            <tr>
+                                <th>SKU</th>
+                                <th>QuickBooks Item</th>
+                                <th>Quantity</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="previewBody"></tbody>
+                    </table>
+                </div>
+                
+                <!-- Download Section -->
+                <div id="downloadSection">
+                    <h3>IIF File Ready!</h3>
+                    <p>Your inventory adjustment file has been generated successfully.</p>
+                    <a id="downloadLink" download="inventory_adjustment.iif">Download IIF File</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let skuLookupTable = {};
+        let processedData = [];
+        
+        // Initialize date fields
+        document.addEventListener('DOMContentLoaded', function() {
+            setYesterday();
+        });
+        
+        // Build SKU lookup table from QuickBooks list
+        function buildSkuLookup() {
+            const qbSkuList = document.getElementById('qbSkuList').value.trim();
+            if (!qbSkuList) {
+                showStatus('skuStatus', 'Please paste your QuickBooks SKU list first', 'error');
+                return;
+            }
+            
+            skuLookupTable = {};
+            const lines = qbSkuList.split('\n');
+            let count = 0;
+            
+            lines.forEach(line => {
+                line = line.trim();
+                if (!line) return;
+                
+                // Check if line contains a colon (subitem format)
+                if (line.includes(':')) {
+                    // Extract the actual SKU after the colon
+                    const parts = line.split(':');
+                    const actualSku = parts[parts.length - 1].trim();
+                    skuLookupTable[actualSku] = line;
+                } else {
+                    // Standalone SKU without subitem
+                    skuLookupTable[line] = line;
+                }
+                count++;
+            });
+            
+            showStatus('skuStatus', `SKU lookup table built successfully! ${count} items loaded.`, 'success');
+        }
+        
+        // Date helper functions
+        function setYesterday() {
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const dateStr = yesterday.toISOString().split('T')[0];
+            document.getElementById('startDate').value = dateStr;
+            document.getElementById('endDate').value = dateStr;
+        }
+        
+        function setLastWeek() {
+            const end = new Date();
+            const start = new Date();
+            start.setDate(start.getDate() - 7);
+            document.getElementById('startDate').value = start.toISOString().split('T')[0];
+            document.getElementById('endDate').value = end.toISOString().split('T')[0];
+        }
+        
+        function setLastMonth() {
+            const end = new Date();
+            const start = new Date();
+            start.setDate(start.getDate() - 30);
+            document.getElementById('startDate').value = start.toISOString().split('T')[0];
+            document.getElementById('endDate').value = end.toISOString().split('T')[0];
+        }
+        
+        // Main processing function
+        async function processData() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            if (!startDate || !endDate) {
+                showStatus('processStatus', 'Please select date range', 'error');
+                return;
+            }
+            
+            if (Object.keys(skuLookupTable).length === 0) {
+                showStatus('processStatus', 'Please build SKU lookup table first', 'error');
+                return;
+            }
+            
+            const processBtn = document.getElementById('processBtn');
+            processBtn.disabled = true;
+            
+            showStatus('processStatus', 'Fetching shipments from ShipStation...', 'info');
+            showProgress(25);
+            
+            try {
+                // Fetch shipments from API
+                const response = await fetch('/api/shipments', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        startDate: startDate + 'T00:00:01',
+                        endDate: endDate + 'T23:59:59'
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch shipments');
+                }
+                
+                const data = await response.json();
+                showProgress(50);
+                
+                // Process the consolidated data
+                processedData = processShipmentData(data.consolidatedItems);
+                showProgress(75);
+                
+                // Display statistics and preview
+                displayStatistics(data, processedData);
+                displayPreview(processedData);
+                
+                // Generate IIF file
+                showStatus('processStatus', 'Generating IIF file...', 'info');
+                const iifResponse = await fetch('/api/generate-iif', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        items: processedData.filter(item => item.matched),
+                        inventoryAccount: document.getElementById('inventoryAccount').value,
+                        startDate,
+                        endDate
+                    })
+                });
+                
+                if (!iifResponse.ok) {
+                    throw new Error('Failed to generate IIF file');
+                }
+                
+                const iifData = await iifResponse.text();
+                showProgress(100);
+                
+                // Create download link
+                createDownloadLink(iifData);
+                
+                showStatus('processStatus', 'Processing complete! IIF file ready for download.', 'success');
+                
+            } catch (error) {
+                console.error('Processing error:', error);
+                showStatus('processStatus', `Error: ${error.message}`, 'error');
+            } finally {
+                processBtn.disabled = false;
+                setTimeout(() => hideProgress(), 2000);
+            }
+        }
+        
+        // Process shipment data with SKU matching
+        function processShipmentData(consolidatedItems) {
+            const results = [];
+            
+            for (const [sku, quantity] of Object.entries(consolidatedItems)) {
+                const qbItem = skuLookupTable[sku];
+                results.push({
+                    sku,
+                    qbItem: qbItem || null,
+                    quantity,
+                    matched: !!qbItem
+                });
+            }
+            
+            return results;
+        }
+        
+        // Display statistics
+        function displayStatistics(apiData, processedData) {
+            document.getElementById('statistics').style.display = 'block';
+            document.getElementById('totalOrders').textContent = apiData.totalOrders || 0;
+            document.getElementById('uniqueSkus').textContent = processedData.length;
+            document.getElementById('matchedSkus').textContent = processedData.filter(item => item.matched).length;
+            document.getElementById('skippedSkus').textContent = processedData.filter(item => !item.matched).length;
+        }
+        
+        // Display preview table
+        function displayPreview(data) {
+            const previewBody = document.getElementById('previewBody');
+            previewBody.innerHTML = '';
+            
+            // Show first 10 items as preview
+            const previewItems = data.slice(0, 10);
+            previewItems.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.sku}</td>
+                    <td>${item.qbItem || 'Not Found'}</td>
+                    <td>${item.quantity}</td>
+                    <td>${item.matched ? 
+                        '<span style="color: green;">✓ Matched</span>' : 
+                        '<span style="color: orange;">⚠ Skipped</span>'}</td>
+                `;
+                previewBody.appendChild(row);
+            });
+            
+            if (data.length > 10) {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td colspan="4" style="text-align: center; font-style: italic;">
+                    ... and ${data.length - 10} more items
+                </td>`;
+                previewBody.appendChild(row);
+            }
+            
+            document.getElementById('previewSection').style.display = 'block';
+        }
+        
+        // Create download link for IIF file
+        function createDownloadLink(iifContent) {
+            const blob = new Blob([iifContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const downloadLink = document.getElementById('downloadLink');
+            
+            downloadLink.href = url;
+            const date = new Date().toISOString().split('T')[0];
+            downloadLink.download = `inventory_adjustment_${date}.iif`;
+            
+            document.getElementById('downloadSection').style.display = 'block';
+        }
+        
+        // UI Helper functions
+        function showStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `status ${type}`;
+            element.style.display = 'block';
+        }
+        
+        function showProgress(percent) {
+            document.getElementById('progressBar').style.display = 'block';
+            document.getElementById('progressBarFill').style.width = percent + '%';
+        }
+        
+        function hideProgress() {
+            document.getElementById('progressBar').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
