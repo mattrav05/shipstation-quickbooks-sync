@@ -310,6 +310,7 @@ PALLET RACK:CAO316
                     <button onclick="setYesterday()">Set to Yesterday</button>
                     <button onclick="setLastWeek()" class="secondary">Last 7 Days</button>
                     <button onclick="setLastMonth()" class="secondary">Last 30 Days</button>
+                    <button onclick="setLastYearDate()" class="secondary">Aug 12, 2024</button>
                 </div>
             </div>
             
@@ -449,6 +450,14 @@ PALLET RACK:CAO316
             start.setDate(start.getDate() - 30);
             document.getElementById('startDate').value = start.toISOString().split('T')[0];
             document.getElementById('endDate').value = end.toISOString().split('T')[0];
+        }
+        
+        function setLastYearDate() {
+            // Set to August 12, 2024
+            const dateStr = '2024-08-12';
+            document.getElementById('startDate').value = dateStr;
+            document.getElementById('endDate').value = dateStr;
+            console.log('Set date range to August 12, 2024:', dateStr);
         }
         
         // Main processing function
