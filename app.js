@@ -30,7 +30,7 @@ const App = {
     // Load all data from database
     async loadData() {
         try {
-            const response = await fetch('/api/database?action=all');
+            const response = await fetch('/api/database-persistent?action=all');
             if (response.ok) {
                 const data = await response.json();
                 this.data.skus = data.skus || [];
@@ -177,7 +177,7 @@ async function importSkus() {
     }
     
     try {
-        const response = await fetch('/api/database?action=import-skus', {
+        const response = await fetch('/api/database-persistent?action=import-skus', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ skuText })
@@ -214,7 +214,7 @@ async function addSku() {
     }
     
     try {
-        const response = await fetch('/api/database?action=add-sku', {
+        const response = await fetch('/api/database-persistent?action=add-sku', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, category })
@@ -248,7 +248,7 @@ async function addAlias() {
     }
     
     try {
-        const response = await fetch('/api/database?action=add-alias', {
+        const response = await fetch('/api/database-persistent?action=add-alias', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ shipstationSku, quickbooksSku })
@@ -289,7 +289,7 @@ async function addQuickAlias() {
     }
     
     try {
-        const response = await fetch('/api/database?action=add-alias', {
+        const response = await fetch('/api/database-persistent?action=add-alias', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ shipstationSku, quickbooksSku })
@@ -319,7 +319,7 @@ async function deleteSku(skuId) {
     }
     
     try {
-        const response = await fetch(`/api/database?action=sku&id=${skuId}`, {
+        const response = await fetch(`/api/database-persistent?action=sku&id=${skuId}`, {
             method: 'DELETE'
         });
         
@@ -345,7 +345,7 @@ async function deleteAlias(shipstationSku) {
     }
     
     try {
-        const response = await fetch(`/api/database?action=alias&shipstationSku=${encodeURIComponent(shipstationSku)}`, {
+        const response = await fetch(`/api/database-persistent?action=alias&shipstationSku=${encodeURIComponent(shipstationSku)}`, {
             method: 'DELETE'
         });
         
@@ -495,7 +495,7 @@ async function syncData() {
         document.getElementById('syncResults').style.display = 'block';
         
         // Add to history
-        await fetch('/api/database?action=add-history', {
+        await fetch('/api/database-persistent?action=add-history', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -616,7 +616,7 @@ async function generateIIF() {
         URL.revokeObjectURL(url);
         
         // Add to history
-        await fetch('/api/database?action=add-history', {
+        await fetch('/api/database-persistent?action=add-history', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
