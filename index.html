@@ -432,6 +432,7 @@ PALLET RACK:CAO316
             const dateStr = yesterday.toISOString().split('T')[0];
             document.getElementById('startDate').value = dateStr;
             document.getElementById('endDate').value = dateStr;
+            console.log('Set date range to yesterday:', dateStr);
         }
         
         function setLastWeek() {
@@ -471,6 +472,12 @@ PALLET RACK:CAO316
             showStatus('processStatus', 'Fetching shipments from ShipStation...', 'info');
             showProgress(25);
             
+            const requestData = {
+                startDate: startDate + 'T00:00:01',
+                endDate: endDate + 'T23:59:59'
+            };
+            console.log('Sending request to ShipStation API:', requestData);
+            
             try {
                 // Fetch shipments from API
                 const response = await fetch('/api/shipments', {
@@ -478,10 +485,7 @@ PALLET RACK:CAO316
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        startDate: startDate + 'T00:00:01',
-                        endDate: endDate + 'T23:59:59'
-                    })
+                    body: JSON.stringify(requestData)
                 });
                 
                 if (!response.ok) {
