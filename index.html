@@ -72,6 +72,61 @@
             border-radius: 2px;
         }
         
+        .sub-section {
+            margin-bottom: 25px;
+            padding: 15px;
+            background: #ffffff;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+        }
+        
+        .sub-section h3 {
+            margin: 0 0 15px 0;
+            color: #444;
+            font-size: 16px;
+        }
+        
+        .form-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .alias-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border: 1px solid #e1e4e8;
+            border-radius: 4px;
+            margin-bottom: 5px;
+        }
+        
+        .alias-mapping {
+            font-family: monospace;
+            color: #333;
+        }
+        
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .sku-result {
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border: 1px solid #e1e4e8;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            font-family: monospace;
+        }
+        
         .form-group {
             margin-bottom: 20px;
         }
@@ -281,17 +336,59 @@
         <div class="content">
             <!-- QuickBooks SKU Configuration -->
             <div class="section">
-                <h2>QuickBooks SKU Configuration</h2>
-                <div class="form-group">
-                    <label for="qbSkuList">Paste your QuickBooks SKU list (with subitem prefixes):</label>
-                    <textarea id="qbSkuList" placeholder="Example:
+                <h2>QuickBooks SKU Management</h2>
+                
+                <!-- Original SKU List -->
+                <div class="sub-section">
+                    <h3>Import QuickBooks SKU List</h3>
+                    <div class="form-group">
+                        <label for="qbSkuList">Paste your QuickBooks SKU list (with subitem prefixes):</label>
+                        <textarea id="qbSkuList" placeholder="Example:
 -USMICH-:USM1020
 -USMICH-:USM1030
 FANUC ELITE:FR-112276
 PALLET RACK:CAO316
 ..."></textarea>
+                    </div>
+                    <div class="button-group">
+                        <button onclick="buildSkuLookup()" class="secondary">Build SKU Lookup Table</button>
+                        <button onclick="saveSkuList()" class="secondary">Save SKU List</button>
+                        <button onclick="loadSkuList()" class="secondary">Load Saved List</button>
+                    </div>
                 </div>
-                <button onclick="buildSkuLookup()" class="secondary">Build SKU Lookup Table</button>
+
+                <!-- Add New SKU -->
+                <div class="sub-section">
+                    <h3>Add New QuickBooks Item</h3>
+                    <div class="form-row">
+                        <input type="text" id="newSkuName" placeholder="SKU/Item Name (e.g., SI-P06C)" style="flex: 1; margin-right: 10px;">
+                        <input type="text" id="newSkuCategory" placeholder="Category (optional, e.g., SHELVING - WIRE)" style="flex: 1; margin-right: 10px;">
+                        <button onclick="addNewSku()">Add Item</button>
+                    </div>
+                </div>
+
+                <!-- SKU Aliases -->
+                <div class="sub-section">
+                    <h3>SKU Aliases (Map ShipStation → QuickBooks)</h3>
+                    <div class="form-row">
+                        <input type="text" id="aliasShipstation" placeholder="ShipStation SKU (e.g., si-apsc)" style="flex: 1; margin-right: 10px;">
+                        <span style="padding: 10px;">→</span>
+                        <input type="text" id="aliasQuickbooks" placeholder="QuickBooks SKU (e.g., SI-APSC)" style="flex: 1; margin-right: 10px;">
+                        <button onclick="addSkuAlias()">Add Alias</button>
+                    </div>
+                    <div id="aliasesDisplay" style="margin-top: 15px;"></div>
+                </div>
+
+                <!-- Search & Manage -->
+                <div class="sub-section">
+                    <h3>Search & Manage SKUs</h3>
+                    <div class="form-row">
+                        <input type="text" id="skuSearch" placeholder="Search SKUs..." style="flex: 1; margin-right: 10px;" oninput="searchSkus()">
+                        <button onclick="showAllSkus()">Show All SKUs</button>
+                    </div>
+                    <div id="skuSearchResults" style="margin-top: 15px; max-height: 200px; overflow-y: auto;"></div>
+                </div>
+
                 <div id="skuStatus" class="status info"></div>
             </div>
             
@@ -385,6 +482,8 @@ PALLET RACK:CAO316
         // Global variables
         let skuLookupTable = {};
         let processedData = [];
+        let skuAliases = {};
+        let skuList = [];
         
         // Initialize date fields
         document.addEventListener('DOMContentLoaded', function() {
@@ -423,6 +522,186 @@ PALLET RACK:CAO316
             });
             
             showStatus('skuStatus', `SKU lookup table built successfully! ${count} items loaded.`, 'success');
+            loadAliases(); // Load any saved aliases
+            displayAliases(); // Show current aliases
+        }
+
+        // SKU Management Functions
+        function saveSkuList() {
+            const qbSkuList = document.getElementById('qbSkuList').value.trim();
+            if (!qbSkuList) {
+                showStatus('skuStatus', 'No SKU list to save', 'error');
+                return;
+            }
+            localStorage.setItem('qbSkuList', qbSkuList);
+            showStatus('skuStatus', 'SKU list saved successfully!', 'success');
+        }
+
+        function loadSkuList() {
+            const saved = localStorage.getItem('qbSkuList');
+            if (saved) {
+                document.getElementById('qbSkuList').value = saved;
+                showStatus('skuStatus', 'SKU list loaded successfully!', 'success');
+            } else {
+                showStatus('skuStatus', 'No saved SKU list found', 'error');
+            }
+        }
+
+        function addNewSku() {
+            const name = document.getElementById('newSkuName').value.trim();
+            const category = document.getElementById('newSkuCategory').value.trim();
+            
+            if (!name) {
+                showStatus('skuStatus', 'Please enter a SKU name', 'error');
+                return;
+            }
+
+            const qbSkuList = document.getElementById('qbSkuList');
+            let newLine;
+            
+            if (category) {
+                newLine = `${category}:${name}`;
+            } else {
+                newLine = name;
+            }
+
+            // Add to the textarea
+            if (qbSkuList.value.trim()) {
+                qbSkuList.value += '\n' + newLine;
+            } else {
+                qbSkuList.value = newLine;
+            }
+
+            // Clear inputs
+            document.getElementById('newSkuName').value = '';
+            document.getElementById('newSkuCategory').value = '';
+
+            showStatus('skuStatus', `Added "${newLine}" to SKU list. Remember to rebuild the lookup table!`, 'success');
+        }
+
+        function addSkuAlias() {
+            const shipstation = document.getElementById('aliasShipstation').value.trim();
+            const quickbooks = document.getElementById('aliasQuickbooks').value.trim();
+            
+            if (!shipstation || !quickbooks) {
+                showStatus('skuStatus', 'Please enter both ShipStation and QuickBooks SKUs', 'error');
+                return;
+            }
+
+            // Store alias (case-insensitive key)
+            skuAliases[shipstation.toLowerCase()] = quickbooks;
+            
+            // Save to localStorage
+            localStorage.setItem('skuAliases', JSON.stringify(skuAliases));
+            
+            // Clear inputs
+            document.getElementById('aliasShipstation').value = '';
+            document.getElementById('aliasQuickbooks').value = '';
+            
+            displayAliases();
+            showStatus('skuStatus', `Added alias: "${shipstation}" → "${quickbooks}"`, 'success');
+        }
+
+        function loadAliases() {
+            const saved = localStorage.getItem('skuAliases');
+            if (saved) {
+                skuAliases = JSON.parse(saved);
+            }
+        }
+
+        function displayAliases() {
+            const container = document.getElementById('aliasesDisplay');
+            container.innerHTML = '';
+            
+            const aliases = Object.entries(skuAliases);
+            if (aliases.length === 0) {
+                container.innerHTML = '<p style="color: #666; font-style: italic;">No aliases defined yet</p>';
+                return;
+            }
+
+            aliases.forEach(([shipstation, quickbooks]) => {
+                const div = document.createElement('div');
+                div.className = 'alias-item';
+                div.innerHTML = `
+                    <span class="alias-mapping">${shipstation} → ${quickbooks}</span>
+                    <button class="delete-btn" onclick="removeAlias('${shipstation}')">Delete</button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function removeAlias(shipstationSku) {
+            delete skuAliases[shipstationSku];
+            localStorage.setItem('skuAliases', JSON.stringify(skuAliases));
+            displayAliases();
+            showStatus('skuStatus', `Removed alias for "${shipstationSku}"`, 'success');
+        }
+
+        function searchSkus() {
+            const query = document.getElementById('skuSearch').value.trim().toLowerCase();
+            const container = document.getElementById('skuSearchResults');
+            
+            if (!query) {
+                container.innerHTML = '';
+                return;
+            }
+
+            const results = [];
+            
+            // Search in lookup table
+            Object.entries(skuLookupTable).forEach(([key, value]) => {
+                if (key.includes(query) || value.toLowerCase().includes(query)) {
+                    results.push({ type: 'QuickBooks', sku: value });
+                }
+            });
+            
+            // Search in aliases
+            Object.entries(skuAliases).forEach(([shipstation, quickbooks]) => {
+                if (shipstation.includes(query) || quickbooks.toLowerCase().includes(query)) {
+                    results.push({ type: 'Alias', sku: `${shipstation} → ${quickbooks}` });
+                }
+            });
+
+            displaySearchResults(results);
+        }
+
+        function showAllSkus() {
+            const results = [];
+            
+            // Add all QuickBooks SKUs
+            Object.entries(skuLookupTable).forEach(([key, value]) => {
+                results.push({ type: 'QuickBooks', sku: value });
+            });
+            
+            // Add all aliases
+            Object.entries(skuAliases).forEach(([shipstation, quickbooks]) => {
+                results.push({ type: 'Alias', sku: `${shipstation} → ${quickbooks}` });
+            });
+
+            displaySearchResults(results.slice(0, 50)); // Limit to first 50 for performance
+        }
+
+        function displaySearchResults(results) {
+            const container = document.getElementById('skuSearchResults');
+            container.innerHTML = '';
+            
+            if (results.length === 0) {
+                container.innerHTML = '<p style="color: #666; font-style: italic;">No results found</p>';
+                return;
+            }
+
+            results.forEach(result => {
+                const div = document.createElement('div');
+                div.className = 'sku-result';
+                div.innerHTML = `<strong>[${result.type}]</strong> ${result.sku}`;
+                container.appendChild(div);
+            });
+
+            if (results.length >= 50) {
+                const div = document.createElement('div');
+                div.innerHTML = '<p style="color: #666; font-style: italic;">... showing first 50 results</p>';
+                container.appendChild(div);
+            }
         }
         
         // Date helper functions
@@ -540,8 +819,18 @@ PALLET RACK:CAO316
             const results = [];
             
             for (const [sku, quantity] of Object.entries(consolidatedItems)) {
-                // Use lowercase for case-insensitive lookup
-                const qbItem = skuLookupTable[sku.toLowerCase()];
+                // Check aliases first, then fall back to direct lookup
+                const aliasedSku = skuAliases[sku.toLowerCase()];
+                let qbItem = null;
+                
+                if (aliasedSku) {
+                    // If there's an alias, look up the aliased QuickBooks SKU
+                    qbItem = skuLookupTable[aliasedSku.toLowerCase()] || aliasedSku;
+                } else {
+                    // No alias, check direct lookup
+                    qbItem = skuLookupTable[sku.toLowerCase()];
+                }
+                
                 results.push({
                     sku,
                     qbItem: qbItem || null,
