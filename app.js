@@ -693,6 +693,41 @@ async function exportData() {
     App.showNotification('Please sync order data first, then generate IIF file', 'info');
 }
 
+// Clear database for fresh start
+async function clearDatabase() {
+    if (!confirm('⚠️ WARNING: This will permanently delete ALL data including:\n\n• All SKUs\n• All aliases\n• All sync history\n\nThis cannot be undone. Are you sure?')) {
+        return;
+    }
+    
+    try {
+        App.showNotification('Clearing database...', 'info');
+        
+        const response = await fetch('/api/clear-database', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            console.log('Database cleared:', result);
+            
+            App.showNotification('Database cleared successfully! Ready for fresh import.', 'success');
+            
+            // Reload data and update UI
+            await App.loadData();
+            App.updateStats();
+            App.renderSkuTable();
+            App.renderHistory();
+        } else {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to clear database');
+        }
+    } catch (error) {
+        console.error('Clear database error:', error);
+        App.showNotification('Failed to clear database: ' + error.message, 'error');
+    }
+}
+
 // Render history
 App.renderHistory = function() {
     const container = document.getElementById('historyContent');
