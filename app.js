@@ -271,6 +271,48 @@ async function addAlias() {
     }
 }
 
+// Quick alias functions for individual SKUs
+function openQuickAliasModal(skuName) {
+    document.getElementById('quickAliasSkuName').textContent = skuName;
+    document.getElementById('quickAliasQuickbooksSku').value = skuName;
+    document.getElementById('quickAliasShipstationSku').value = '';
+    openModal('quickAliasModal');
+}
+
+async function addQuickAlias() {
+    const shipstationSku = document.getElementById('quickAliasShipstationSku').value.trim();
+    const quickbooksSku = document.getElementById('quickAliasQuickbooksSku').value.trim();
+    
+    if (!shipstationSku) {
+        App.showNotification('Please enter the ShipStation SKU', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/database?action=add-alias', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ shipstationSku, quickbooksSku })
+        });
+        
+        if (response.ok) {
+            App.showNotification(`Alias created: ${shipstationSku} → ${quickbooksSku}`, 'success');
+            
+            // Reload data and update UI
+            await App.loadData();
+            App.updateStats();
+            App.renderSkuTable();
+            closeModal('quickAliasModal');
+        } else {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to add alias');
+        }
+    } catch (error) {
+        console.error('Add quick alias error:', error);
+        App.showNotification(error.message || 'Failed to add alias', 'error');
+    }
+}
+
 async function deleteSku(skuId) {
     if (!confirm('Are you sure you want to delete this SKU?')) {
         return;
@@ -384,14 +426,19 @@ App.renderSkuTable = function(searchQuery = '') {
                                    'badge-error'}">${item.type}</span>
             </td>
             <td>
-                ${item.isAlias ? 
-                    `<button class="btn btn-outline" onclick="deleteAlias('${item.shipstationSku}')" title="Delete Alias">
-                        <i class="fas fa-trash"></i>
-                    </button>` :
-                    `<button class="btn btn-outline" onclick="deleteSku('${item.id}')" title="Delete SKU">
-                        <i class="fas fa-trash"></i>
-                    </button>`
-                }
+                <div style="display: flex; gap: 0.5rem;">
+                    ${item.isAlias ? 
+                        `<button class="btn btn-outline btn-sm" onclick="deleteAlias('${item.shipstationSku}')" title="Delete Alias">
+                            <i class="fas fa-trash"></i>
+                        </button>` :
+                        `<button class="btn btn-outline btn-sm" onclick="openQuickAliasModal('${item.name.replace(/'/g, "\\'")}')" title="Create Alias for this SKU">
+                            <i class="fas fa-link"></i>
+                        </button>
+                        <button class="btn btn-outline btn-sm" onclick="deleteSku('${item.id}')" title="Delete SKU">
+                            <i class="fas fa-trash"></i>
+                        </button>`
+                    }
+                </div>
             </td>
         </tr>
     `).join('');

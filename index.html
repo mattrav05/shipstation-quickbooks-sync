@@ -291,6 +291,11 @@
             background: #f8fafc;
         }
 
+        .btn-sm {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.75rem;
+        }
+
         .btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
@@ -826,6 +831,36 @@ PALLET RACK:CAO316"></textarea>
                     <button class="btn btn-primary" onclick="addAlias()">
                         <i class="fas fa-link"></i>
                         Add Alias
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Alias Modal -->
+    <div id="quickAliasModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create Alias for <span id="quickAliasSkuName"></span></h3>
+                <button class="modal-close" onclick="closeModal('quickAliasModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 1rem; color: var(--text-muted);">
+                    Create an alias that maps a ShipStation SKU to this QuickBooks item.
+                </p>
+                <div class="form-group">
+                    <label class="form-label">ShipStation SKU (what comes from ShipStation)</label>
+                    <input type="text" class="form-input" id="quickAliasShipstationSku" placeholder="e.g., si-apsc, product-123, etc.">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">QuickBooks SKU (this item)</label>
+                    <input type="text" class="form-input" id="quickAliasQuickbooksSku" readonly style="background: #f8fafc;">
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button class="btn btn-outline" onclick="closeModal('quickAliasModal')">Cancel</button>
+                    <button class="btn btn-primary" onclick="addQuickAlias()">
+                        <i class="fas fa-link"></i>
+                        Create Alias
                     </button>
                 </div>
             </div>
