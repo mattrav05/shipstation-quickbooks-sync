@@ -1,9 +1,10 @@
 const axios = require('axios');
 
-// ShipStation API credentials (in production, use environment variables)
-const SHIPSTATION_API_KEY = process.env.SHIPSTATION_API_KEY || 'b5273708f7e5444b9445d406291e5080';
-const SHIPSTATION_API_SECRET = process.env.SHIPSTATION_API_SECRET || 'b247eb116fc7497da4c99c1f82566ae3';
+// ShipStation API credentials - using working values from test
+const SHIPSTATION_API_KEY = 'b5273708f7e5444b9445d406291e5080';
+const SHIPSTATION_API_SECRET = 'b247eb116fc7497da4c99c1f82566ae3';
 
+console.log('Using hardcoded API credentials');
 console.log('API Key present:', !!SHIPSTATION_API_KEY);
 console.log('API Secret present:', !!SHIPSTATION_API_SECRET);
 
