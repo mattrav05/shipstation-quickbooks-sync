@@ -19,7 +19,15 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git config:*)",
-      "Bash(\"/mnt/c/Program Files/GitHub CLI/gh.exe\" repo create shipstation-quickbooks-sync --public --source=. --remote=origin --push)"
+      "Bash(\"/mnt/c/Program Files/GitHub CLI/gh.exe\" repo create shipstation-quickbooks-sync --public --source=. --remote=origin --push)",
+      "Bash(\"/mnt/c/Program Files/GitHub CLI/gh.exe\" repo create shipstation-quickbooks-sync --public)",
+      "Bash(git remote add:*)",
+      "Bash(git push:*)",
+      "Bash(\"/mnt/c/Program Files/GitHub CLI/gh.exe\" auth setup-git)",
+      "Bash(\"/mnt/c/Program Files/GitHub CLI/gh.exe\" repo sync --source)",
+      "Bash(git remote set-url:*)",
+      "Bash(\"/mnt/c/Program Files/GitHub CLI/gh.exe\" auth token)",
+      "Bash(vercel:*)"
     ],
     "deny": [],
     "ask": []

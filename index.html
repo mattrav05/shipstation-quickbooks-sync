@@ -485,10 +485,13 @@ PALLET RACK:CAO316
                 });
                 
                 if (!response.ok) {
-                    throw new Error('Failed to fetch shipments');
+                    const errorText = await response.text();
+                    console.error('API Error Response:', errorText);
+                    throw new Error(`Failed to fetch shipments (${response.status}): ${errorText}`);
                 }
                 
                 const data = await response.json();
+                console.log('API Response:', data);
                 showProgress(50);
                 
                 // Process the consolidated data

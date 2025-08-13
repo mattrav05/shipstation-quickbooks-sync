@@ -27,6 +27,14 @@ module.exports = async (req, res) => {
             return res.status(400).json({ error: 'Start date and end date are required' });
         }
         
+        // Validate API credentials
+        if (!SHIPSTATION_API_KEY || !SHIPSTATION_API_SECRET) {
+            console.error('Missing ShipStation API credentials');
+            return res.status(500).json({ error: 'ShipStation API credentials not configured' });
+        }
+        
+        console.log('Processing request:', { startDate, endDate });
+        
         // Create auth header
         const auth = Buffer.from(`${SHIPSTATION_API_KEY}:${SHIPSTATION_API_SECRET}`).toString('base64');
         
@@ -74,6 +82,7 @@ module.exports = async (req, res) => {
                 
             } catch (error) {
                 console.error(`Error fetching page ${page}:`, error.message);
+                console.error('Full error details:', error.response?.data || error);
                 hasMorePages = false;
             }
         }
@@ -98,6 +107,9 @@ module.exports = async (req, res) => {
                 });
             }
         });
+        
+        // Log summary for debugging
+        console.log(`API Summary: ${allShipments.length} shipments, ${totalOrders} orders, ${Object.keys(consolidatedItems).length} unique SKUs`);
         
         // Return consolidated data
         return res.status(200).json({
