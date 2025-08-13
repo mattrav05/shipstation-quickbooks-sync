@@ -171,7 +171,7 @@ async function handlePost(req, res, action) {
         
         if (uniqueNewSkus.length > 0) {
           // Process in batches to handle large datasets
-          const BATCH_SIZE = 1000; // Supabase recommended batch size
+          const BATCH_SIZE = 500; // Reduced for Vercel timeout limits
           const batches = [];
           
           for (let i = 0; i < uniqueNewSkus.length; i += BATCH_SIZE) {

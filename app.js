@@ -191,57 +191,107 @@ async function importSkus() {
     }
     
     try {
-        console.log('Starting SKU import...');
-        App.showNotification('Processing large SKU import, please wait...', 'info');
+        console.log('Starting chunked SKU import...');
         
-        // Add timeout for large imports
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutes timeout
+        // Parse SKUs locally first
+        const lines = skuText.split('\n');
+        const allSkus = [];
+        const seenSkus = new Set();
         
-        const response = await fetch('/api/database-supabase?action=import-skus', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ skuText }),
-            signal: controller.signal
+        lines.forEach(line => {
+            line = line.trim();
+            if (!line) return;
+            
+            let name, category = null;
+            if (line.includes(':')) {
+                const parts = line.split(':');
+                category = parts[0].trim();
+                name = parts.slice(1).join(':').trim();
+            } else {
+                name = line;
+            }
+            
+            if (name && name.trim()) {
+                const normalizedName = name.trim();
+                const lowerName = normalizedName.toLowerCase();
+                
+                if (!seenSkus.has(lowerName)) {
+                    seenSkus.add(lowerName);
+                    allSkus.push({ name: normalizedName, category: category || null });
+                }
+            }
         });
         
-        clearTimeout(timeoutId);
-        console.log('Import response status:', response.status);
+        console.log(`Parsed ${allSkus.length} unique SKUs. Processing in chunks...`);
         
-        if (response.ok) {
-            const result = await response.json();
-            console.log('Import result:', result);
-            
-            App.showNotification(
-                `Imported ${result.imported} SKUs (${result.duplicates} duplicates skipped)`, 
-                'success'
-            );
-            
-            // Force reload data and update UI
-            console.log('Reloading data...');
-            await App.loadData();
-            console.log('Updated data:', App.data);
-            
-            App.updateStats();
-            App.renderSkuTable();
-            
-            // Switch to inventory tab to show the results
-            showTab('inventory');
-            closeModal('importModal');
-        } else {
-            const errorText = await response.text();
-            console.error('Import failed:', errorText);
-            throw new Error('Import failed: ' + response.status);
+        // Process in chunks of 300 to avoid Vercel timeout
+        const CHUNK_SIZE = 300;
+        const chunks = [];
+        for (let i = 0; i < allSkus.length; i += CHUNK_SIZE) {
+            chunks.push(allSkus.slice(i, i + CHUNK_SIZE));
         }
+        
+        console.log(`Processing ${chunks.length} chunks of ${CHUNK_SIZE} SKUs each`);
+        App.showNotification(`Processing ${allSkus.length} SKUs in ${chunks.length} chunks...`, 'info');
+        
+        let totalImported = 0;
+        let totalDuplicates = 0;
+        
+        // Process each chunk sequentially
+        for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex++) {
+            const chunk = chunks[chunkIndex];
+            const chunkText = chunk.map(sku => 
+                sku.category ? `${sku.category}:${sku.name}` : sku.name
+            ).join('\n');
+            
+            console.log(`Processing chunk ${chunkIndex + 1}/${chunks.length} (${chunk.length} SKUs)...`);
+            App.showNotification(`Processing chunk ${chunkIndex + 1}/${chunks.length}...`, 'info');
+            
+            try {
+                const response = await fetch('/api/database-supabase?action=import-skus', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ skuText: chunkText })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log(`Chunk ${chunkIndex + 1} result:`, result);
+                    totalImported += result.imported;
+                    totalDuplicates += result.duplicates;
+                } else {
+                    const errorText = await response.text();
+                    console.error(`Chunk ${chunkIndex + 1} failed:`, errorText);
+                    App.showNotification(`Chunk ${chunkIndex + 1} failed: ${errorText}`, 'error');
+                }
+                
+                // Small delay between chunks
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+            } catch (chunkError) {
+                console.error(`Chunk ${chunkIndex + 1} error:`, chunkError);
+                App.showNotification(`Chunk ${chunkIndex + 1} error: ${chunkError.message}`, 'error');
+            }
+        }
+        
+        console.log(`Import complete! Total imported: ${totalImported}, duplicates: ${totalDuplicates}`);
+        App.showNotification(
+            `Import complete! Imported ${totalImported} SKUs (${totalDuplicates} duplicates skipped)`, 
+            'success'
+        );
+        
+        // Force reload data and update UI
+        await App.loadData();
+        App.updateStats();
+        App.renderSkuTable();
+        
+        // Switch to inventory tab to show the results
+        showTab('inventory');
+        closeModal('importModal');
+        
     } catch (error) {
         console.error('Import error:', error);
-        if (error.name === 'AbortError') {
-            App.showNotification('Import timed out. Try with a smaller batch or contact support.', 'error');
-        } else if (error.message.includes('NetworkError') || error.message.includes('fetch')) {
-            App.showNotification('Network error during import. Please check your connection and try again.', 'error');
-        } else {
-            App.showNotification('Failed to import SKUs: ' + error.message, 'error');
-        }
+        App.showNotification('Failed to import SKUs: ' + error.message, 'error');
     }
 }
 
