@@ -454,13 +454,40 @@ async function handleDelete(req, res, action) {
 
 // Helper functions
 async function getSkus() {
-  const { data, error } = await supabase
+  // Get total count first
+  const { count, error: countError } = await supabase
     .from('skus')
-    .select('*')
-    .order('created_at', { ascending: false });
+    .select('*', { count: 'exact', head: true });
   
-  if (error) throw error;
-  return data || [];
+  if (countError) throw countError;
+  console.log(`Total SKUs in database: ${count}`);
+  
+  // Fetch all SKUs (Supabase default limit is 1000, so we need to paginate)
+  let allSkus = [];
+  let from = 0;
+  const limit = 1000;
+  
+  while (from < count) {
+    console.log(`Fetching SKUs ${from} to ${from + limit - 1}...`);
+    const { data, error } = await supabase
+      .from('skus')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(from, from + limit - 1);
+    
+    if (error) throw error;
+    
+    if (data && data.length > 0) {
+      allSkus = allSkus.concat(data);
+      from += limit;
+      console.log(`Fetched ${data.length} SKUs, total so far: ${allSkus.length}`);
+    } else {
+      break; // No more data
+    }
+  }
+  
+  console.log(`Final SKU count retrieved: ${allSkus.length}`);
+  return allSkus;
 }
 
 async function getAliases() {
