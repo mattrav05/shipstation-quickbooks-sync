@@ -47,6 +47,15 @@ module.exports = async (req, res) => {
         // Fetch all pages of shipments
         while (hasMorePages) {
             const url = `https://ssapi.shipstation.com/shipments`;
+            const params = {
+                shipDateStart: startDate,
+                shipDateEnd: endDate,
+                page: page,
+                pageSize: pageSize,
+                includeShipmentItems: true
+            };
+            
+            console.log(`Fetching page ${page} with params:`, params);
             
             try {
                 const response = await axios.get(url, {
@@ -54,19 +63,19 @@ module.exports = async (req, res) => {
                         'Authorization': `Basic ${auth}`,
                         'Content-Type': 'application/json'
                     },
-                    params: {
-                        shipDateStart: startDate,
-                        shipDateEnd: endDate,
-                        page: page,
-                        pageSize: pageSize,
-                        includeShipmentItems: true
-                    }
+                    params: params
                 });
                 
                 const data = response.data;
+                console.log(`Page ${page} response:`, {
+                    shipmentCount: data.shipments ? data.shipments.length : 0,
+                    totalPages: data.pages || 'unknown',
+                    currentPage: data.page || page
+                });
                 
                 if (data.shipments && data.shipments.length > 0) {
                     allShipments = allShipments.concat(data.shipments);
+                    console.log(`Added ${data.shipments.length} shipments. Total so far: ${allShipments.length}`);
                 }
                 
                 // Check if there are more pages
