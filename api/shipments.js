@@ -4,6 +4,9 @@ const axios = require('axios');
 const SHIPSTATION_API_KEY = process.env.SHIPSTATION_API_KEY || 'b5273708f7e5444b9445d406291e5080';
 const SHIPSTATION_API_SECRET = process.env.SHIPSTATION_API_SECRET || 'b247eb116fc7497da4c99c1f82566ae3';
 
+console.log('API Key present:', !!SHIPSTATION_API_KEY);
+console.log('API Secret present:', !!SHIPSTATION_API_SECRET);
+
 module.exports = async (req, res) => {
     // Enable CORS
     res.setHeader('Access-Control-Allow-Credentials', true);
@@ -41,6 +44,8 @@ module.exports = async (req, res) => {
             const url = `https://ssapi.shipstation.com/shipments`;
             
             try {
+                console.log(`Fetching ShipStation page ${page} with date range: ${startDate} to ${endDate}`);
+                
                 const response = await axios.get(url, {
                     headers: {
                         'Authorization': `Basic ${auth}`,
@@ -56,6 +61,7 @@ module.exports = async (req, res) => {
                 });
                 
                 const data = response.data;
+                console.log(`Page ${page} returned ${data.shipments ? data.shipments.length : 0} shipments`);
                 
                 if (data.shipments && data.shipments.length > 0) {
                     allShipments = allShipments.concat(data.shipments);
