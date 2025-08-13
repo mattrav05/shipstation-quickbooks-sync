@@ -3,905 +3,835 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ShipStation to QuickBooks IIF Generator</title>
+    <title>ShipStation QuickBooks Sync</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #64748b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --background: #f8fafc;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--background);
+            color: var(--text);
+            line-height: 1.6;
         }
-        
-        .container {
+
+        .app-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .header-content {
             max-width: 1200px;
             margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-        
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-        
-        .header h1 {
-            font-size: 28px;
-            margin-bottom: 10px;
-        }
-        
-        .header p {
-            opacity: 0.9;
-            font-size: 16px;
-        }
-        
-        .content {
-            padding: 30px;
-        }
-        
-        .section {
-            margin-bottom: 30px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 8px;
-        }
-        
-        .section h2 {
-            color: #333;
-            margin-bottom: 15px;
-            font-size: 20px;
             display: flex;
             align-items: center;
-            gap: 10px;
-        }
-        
-        .section h2::before {
-            content: '';
-            width: 4px;
-            height: 24px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 2px;
-        }
-        
-        .sub-section {
-            margin-bottom: 25px;
-            padding: 15px;
-            background: #ffffff;
-            border: 1px solid #e1e4e8;
-            border-radius: 6px;
-        }
-        
-        .sub-section h3 {
-            margin: 0 0 15px 0;
-            color: #444;
-            font-size: 16px;
-        }
-        
-        .form-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .alias-item {
-            display: flex;
             justify-content: space-between;
-            align-items: center;
-            padding: 8px 12px;
-            background: #f8f9fa;
-            border: 1px solid #e1e4e8;
-            border-radius: 4px;
-            margin-bottom: 5px;
         }
-        
-        .alias-mapping {
-            font-family: monospace;
-            color: #333;
-        }
-        
-        .delete-btn {
-            background: #dc3545;
-            color: white;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-        
-        .sku-result {
-            padding: 8px 12px;
-            background: #f8f9fa;
-            border: 1px solid #e1e4e8;
-            border-radius: 4px;
-            margin-bottom: 5px;
-            font-family: monospace;
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        label {
-            display: block;
-            margin-bottom: 8px;
-            color: #555;
-            font-weight: 500;
-        }
-        
-        input[type="date"],
-        input[type="text"],
-        textarea {
-            width: 100%;
-            padding: 10px;
-            border: 2px solid #e1e4e8;
-            border-radius: 6px;
-            font-size: 14px;
-            transition: all 0.3s;
-        }
-        
-        input[type="date"]:focus,
-        input[type="text"]:focus,
-        textarea:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-        
-        textarea {
-            min-height: 150px;
-            resize: vertical;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-        }
-        
-        .button-group {
+
+        .logo {
             display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
         }
-        
-        button {
-            padding: 10px 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
             border-radius: 6px;
-            font-size: 14px;
+            font-size: 0.875rem;
             font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s;
         }
-        
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+
+        .status-indicator.connected {
+            background: #dcfce7;
+            color: #166534;
         }
-        
-        button:active {
-            transform: translateY(0);
+
+        .status-indicator.disconnected {
+            background: #fef2f2;
+            color: #991b1b;
         }
-        
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            width: 100%;
         }
-        
-        button.secondary {
-            background: #6c757d;
+
+        /* Navigation Tabs */
+        .nav-tabs {
+            display: flex;
+            background: var(--surface);
+            border-radius: 8px;
+            padding: 0.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
         }
-        
-        button.success {
-            background: #28a745;
-        }
-        
-        .status {
-            padding: 15px;
+
+        .nav-tab {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-weight: 500;
             border-radius: 6px;
-            margin-top: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .nav-tab.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: var(--shadow);
+        }
+
+        .nav-tab:hover:not(.active) {
+            background: #f1f5f9;
+        }
+
+        /* Content Sections */
+        .content-section {
             display: none;
         }
-        
-        .status.info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border-left: 4px solid #17a2b8;
+
+        .content-section.active {
+            display: block;
         }
-        
-        .status.success {
-            background: #d4edda;
-            color: #155724;
-            border-left: 4px solid #28a745;
-        }
-        
-        .status.error {
-            background: #f8d7da;
-            color: #721c24;
-            border-left: 4px solid #dc3545;
-        }
-        
-        .status.warning {
-            background: #fff3cd;
-            color: #856404;
-            border-left: 4px solid #ffc107;
-        }
-        
-        .progress {
-            background: #e9ecef;
-            border-radius: 6px;
-            height: 8px;
+
+        /* Cards */
+        .card {
+            background: var(--surface);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
             overflow: hidden;
-            margin-top: 10px;
+            margin-bottom: 2rem;
         }
-        
-        .progress-bar {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            height: 100%;
-            width: 0;
-            transition: width 0.3s;
+
+        .card-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
-        
-        .stats {
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .card-content {
+            padding: 1.5rem;
+        }
+
+        /* Quick Actions */
+        .quick-actions {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
+            gap: 1rem;
+            margin-bottom: 2rem;
         }
-        
-        .stat-card {
-            background: white;
-            padding: 15px;
-            border-radius: 6px;
-            border: 1px solid #e1e4e8;
-        }
-        
-        .stat-card h3 {
-            color: #666;
-            font-size: 12px;
-            text-transform: uppercase;
-            margin-bottom: 5px;
-        }
-        
-        .stat-card .value {
-            color: #333;
-            font-size: 24px;
-            font-weight: bold;
-        }
-        
-        .preview-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-        
-        .preview-table th,
-        .preview-table td {
-            padding: 10px;
-            text-align: left;
-            border-bottom: 1px solid #e1e4e8;
-        }
-        
-        .preview-table th {
-            background: #f8f9fa;
-            font-weight: 600;
-            color: #555;
-        }
-        
-        .preview-table tr:hover {
-            background: #f8f9fa;
-        }
-        
-        #downloadSection {
-            display: none;
-            margin-top: 20px;
-            padding: 20px;
-            background: #d4edda;
-            border-radius: 6px;
+
+        .quick-action {
+            background: var(--surface);
+            border-radius: 8px;
+            padding: 1.5rem;
             text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: var(--shadow);
+            border: 2px solid transparent;
         }
-        
-        #downloadLink {
-            display: inline-block;
-            padding: 12px 30px;
-            background: #28a745;
-            color: white;
-            text-decoration: none;
+
+        .quick-action:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary);
+        }
+
+        .quick-action i {
+            font-size: 2rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .quick-action h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .quick-action p {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
+        }
+
+        .form-row {
+            display: flex;
+            gap: 1rem;
+            align-items: end;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
             border-radius: 6px;
             font-weight: 500;
-            margin-top: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
         }
-        
-        #downloadLink:hover {
-            background: #218838;
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        .btn-outline:hover {
+            background: #f8fafc;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--surface);
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .data-table th {
+            background: #f8fafc;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .data-table tr:hover {
+            background: #f8fafc;
+        }
+
+        /* Status Badges */
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .badge-success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-error {
+            background: #fef2f2;
+            color: #991b1b;
+        }
+
+        /* Loading States */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--border);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Empty States */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: var(--text-muted);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: var(--border);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 1rem;
+            }
+
+            .header-content {
+                padding: 0 1rem;
+            }
+
+            .nav-tabs {
+                flex-direction: column;
+            }
+
+            .form-row {
+                flex-direction: column;
+            }
+
+            .quick-actions {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Search and Filter */
+        .search-bar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            align-items: center;
+        }
+
+        .search-input {
+            flex: 1;
+            position: relative;
+        }
+
+        .search-input input {
+            padding-left: 2.5rem;
+        }
+
+        .search-input i {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--surface);
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-muted);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>ShipStation to QuickBooks IIF Generator</h1>
-            <p>Generate IIF files from ShipStation data for QuickBooks Desktop import</p>
-        </div>
-        
-        <div class="content">
-            <!-- QuickBooks SKU Configuration -->
-            <div class="section">
-                <h2>QuickBooks SKU Management</h2>
-                
-                <!-- Original SKU List -->
-                <div class="sub-section">
-                    <h3>Import QuickBooks SKU List</h3>
-                    <div class="form-group">
-                        <label for="qbSkuList">Paste your QuickBooks SKU list (with subitem prefixes):</label>
-                        <textarea id="qbSkuList" placeholder="Example:
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-sync-alt"></i>
+                    ShipStation QuickBooks Sync
+                </div>
+                <div class="status-indicator" id="connectionStatus">
+                    <i class="fas fa-circle"></i>
+                    <span>Checking connection...</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Navigation Tabs -->
+            <div class="nav-tabs">
+                <button class="nav-tab active" onclick="showTab('dashboard')">
+                    <i class="fas fa-tachometer-alt"></i>
+                    Dashboard
+                </button>
+                <button class="nav-tab" onclick="showTab('inventory')">
+                    <i class="fas fa-boxes"></i>
+                    SKU Management
+                </button>
+                <button class="nav-tab" onclick="showTab('sync')">
+                    <i class="fas fa-sync"></i>
+                    Sync Data
+                </button>
+                <button class="nav-tab" onclick="showTab('history')">
+                    <i class="fas fa-history"></i>
+                    History
+                </button>
+            </div>
+
+            <!-- Dashboard Tab -->
+            <div id="dashboard" class="content-section active">
+                <!-- Quick Actions -->
+                <div class="quick-actions">
+                    <div class="quick-action" onclick="showTab('sync')">
+                        <i class="fas fa-play"></i>
+                        <h3>Quick Sync</h3>
+                        <p>Pull yesterday's shipments</p>
+                    </div>
+                    <div class="quick-action" onclick="showTab('inventory')">
+                        <i class="fas fa-plus"></i>
+                        <h3>Add SKU</h3>
+                        <p>Manage inventory items</p>
+                    </div>
+                    <div class="quick-action" onclick="openModal('importModal')">
+                        <i class="fas fa-upload"></i>
+                        <h3>Import SKUs</h3>
+                        <p>Bulk import from QuickBooks</p>
+                    </div>
+                    <div class="quick-action" onclick="exportData()">
+                        <i class="fas fa-download"></i>
+                        <h3>Export IIF</h3>
+                        <p>Download latest file</p>
+                    </div>
+                </div>
+
+                <!-- Stats -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalSkus">-</div>
+                        <div class="stat-label">Total SKUs</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalAliases">-</div>
+                        <div class="stat-label">SKU Aliases</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="lastSync">Never</div>
+                        <div class="stat-label">Last Sync</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="lastExport">Never</div>
+                        <div class="stat-label">Last Export</div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-clock"></i>
+                            Recent Activity
+                        </h3>
+                    </div>
+                    <div class="card-content">
+                        <div id="recentActivity" class="empty-state">
+                            <i class="fas fa-history"></i>
+                            <h3>No recent activity</h3>
+                            <p>Your sync history will appear here</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SKU Management Tab -->
+            <div id="inventory" class="content-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-boxes"></i>
+                            SKU Management
+                        </h3>
+                        <button class="btn btn-primary" onclick="openModal('addSkuModal')">
+                            <i class="fas fa-plus"></i>
+                            Add SKU
+                        </button>
+                    </div>
+                    <div class="card-content">
+                        <!-- Search Bar -->
+                        <div class="search-bar">
+                            <div class="search-input">
+                                <i class="fas fa-search"></i>
+                                <input type="text" class="form-input" placeholder="Search SKUs..." id="skuSearchInput" oninput="searchSkus()">
+                            </div>
+                            <button class="btn btn-outline" onclick="openModal('aliasModal')">
+                                <i class="fas fa-link"></i>
+                                Add Alias
+                            </button>
+                        </div>
+
+                        <!-- SKU Table -->
+                        <div id="skuTableContainer">
+                            <table class="data-table" id="skuTable">
+                                <thead>
+                                    <tr>
+                                        <th>SKU</th>
+                                        <th>Category</th>
+                                        <th>Type</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="skuTableBody">
+                                    <tr>
+                                        <td colspan="4">
+                                            <div class="empty-state">
+                                                <i class="fas fa-box-open"></i>
+                                                <h3>No SKUs found</h3>
+                                                <p>Import your QuickBooks SKU list to get started</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sync Tab -->
+            <div id="sync" class="content-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-sync"></i>
+                            Sync ShipStation Data
+                        </h3>
+                    </div>
+                    <div class="card-content">
+                        <div class="form-row">
+                            <div class="form-group" style="flex: 1;">
+                                <label class="form-label">Start Date</label>
+                                <input type="date" class="form-input" id="startDate">
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label class="form-label">End Date</label>
+                                <input type="date" class="form-input" id="endDate">
+                            </div>
+                            <button class="btn btn-primary" onclick="syncData()">
+                                <i class="fas fa-sync"></i>
+                                Sync Data
+                            </button>
+                        </div>
+
+                        <div id="syncResults" style="display: none;">
+                            <div class="stats-grid" style="margin-top: 2rem;">
+                                <div class="stat-card">
+                                    <div class="stat-value" id="syncTotalOrders">0</div>
+                                    <div class="stat-label">Orders Processed</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value" id="syncUniqueSkus">0</div>
+                                    <div class="stat-label">Unique SKUs</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value" id="syncMatchedSkus">0</div>
+                                    <div class="stat-label">Matched</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value" id="syncUnmatchedSkus">0</div>
+                                    <div class="stat-label">Unmatched</div>
+                                </div>
+                            </div>
+
+                            <div class="card" style="margin-top: 2rem;">
+                                <div class="card-header">
+                                    <h3 class="card-title">Sync Results</h3>
+                                    <button class="btn btn-success" onclick="generateIIF()" id="generateIifBtn">
+                                        <i class="fas fa-file-export"></i>
+                                        Generate IIF File
+                                    </button>
+                                </div>
+                                <div class="card-content">
+                                    <table class="data-table" id="syncResultsTable">
+                                        <thead>
+                                            <tr>
+                                                <th>SKU</th>
+                                                <th>QuickBooks Item</th>
+                                                <th>Quantity</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="syncResultsBody"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History Tab -->
+            <div id="history" class="content-section">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-history"></i>
+                            Sync History
+                        </h3>
+                    </div>
+                    <div class="card-content">
+                        <div id="historyContent" class="empty-state">
+                            <i class="fas fa-history"></i>
+                            <h3>No sync history</h3>
+                            <p>Your sync history will appear here after your first sync</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <!-- Import SKU Modal -->
+    <div id="importModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Import QuickBooks SKUs</h3>
+                <button class="modal-close" onclick="closeModal('importModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Paste QuickBooks SKU List</label>
+                    <textarea class="form-input" rows="10" id="skuImportText" placeholder="Example:
 -USMICH-:USM1020
 -USMICH-:USM1030
 FANUC ELITE:FR-112276
-PALLET RACK:CAO316
-..."></textarea>
-                    </div>
-                    <div class="button-group">
-                        <button onclick="buildSkuLookup()" class="secondary">Build SKU Lookup Table</button>
-                        <button onclick="saveSkuList()" class="secondary">Save SKU List</button>
-                        <button onclick="loadSkuList()" class="secondary">Load Saved List</button>
-                    </div>
+PALLET RACK:CAO316"></textarea>
                 </div>
-
-                <!-- Add New SKU -->
-                <div class="sub-section">
-                    <h3>Add New QuickBooks Item</h3>
-                    <div class="form-row">
-                        <input type="text" id="newSkuName" placeholder="SKU/Item Name (e.g., SI-P06C)" style="flex: 1; margin-right: 10px;">
-                        <input type="text" id="newSkuCategory" placeholder="Category (optional, e.g., SHELVING - WIRE)" style="flex: 1; margin-right: 10px;">
-                        <button onclick="addNewSku()">Add Item</button>
-                    </div>
-                </div>
-
-                <!-- SKU Aliases -->
-                <div class="sub-section">
-                    <h3>SKU Aliases (Map ShipStation → QuickBooks)</h3>
-                    <div class="form-row">
-                        <input type="text" id="aliasShipstation" placeholder="ShipStation SKU (e.g., si-apsc)" style="flex: 1; margin-right: 10px;">
-                        <span style="padding: 10px;">→</span>
-                        <input type="text" id="aliasQuickbooks" placeholder="QuickBooks SKU (e.g., SI-APSC)" style="flex: 1; margin-right: 10px;">
-                        <button onclick="addSkuAlias()">Add Alias</button>
-                    </div>
-                    <div id="aliasesDisplay" style="margin-top: 15px;"></div>
-                </div>
-
-                <!-- Search & Manage -->
-                <div class="sub-section">
-                    <h3>Search & Manage SKUs</h3>
-                    <div class="form-row">
-                        <input type="text" id="skuSearch" placeholder="Search SKUs..." style="flex: 1; margin-right: 10px;" oninput="searchSkus()">
-                        <button onclick="showAllSkus()">Show All SKUs</button>
-                    </div>
-                    <div id="skuSearchResults" style="margin-top: 15px; max-height: 200px; overflow-y: auto;"></div>
-                </div>
-
-                <div id="skuStatus" class="status info"></div>
-            </div>
-            
-            <!-- Date Range Selection -->
-            <div class="section">
-                <h2>Date Range Selection</h2>
-                <div class="form-group">
-                    <label for="startDate">Start Date:</label>
-                    <input type="date" id="startDate" />
-                </div>
-                <div class="form-group">
-                    <label for="endDate">End Date:</label>
-                    <input type="date" id="endDate" />
-                </div>
-                <div class="button-group">
-                    <button onclick="setYesterday()">Set to Yesterday</button>
-                    <button onclick="setLastWeek()" class="secondary">Last 7 Days</button>
-                    <button onclick="setLastMonth()" class="secondary">Last 30 Days</button>
-                </div>
-            </div>
-            
-            <!-- QuickBooks Configuration -->
-            <div class="section">
-                <h2>QuickBooks Settings</h2>
-                <div class="form-group">
-                    <label for="inventoryAccount">Inventory Account Name:</label>
-                    <input type="text" id="inventoryAccount" value="1500 · Inventory" />
-                </div>
-            </div>
-            
-            <!-- Process Section -->
-            <div class="section">
-                <h2>Generate IIF File</h2>
-                <button onclick="processData()" id="processBtn">
-                    Pull Data & Generate IIF
-                </button>
-                <div id="processStatus" class="status"></div>
-                <div class="progress" id="progressBar" style="display: none;">
-                    <div class="progress-bar" id="progressBarFill"></div>
-                </div>
-                
-                <!-- Statistics -->
-                <div id="statistics" style="display: none;">
-                    <div class="stats">
-                        <div class="stat-card">
-                            <h3>Total Orders</h3>
-                            <div class="value" id="totalOrders">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <h3>Unique SKUs</h3>
-                            <div class="value" id="uniqueSkus">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <h3>Matched SKUs</h3>
-                            <div class="value" id="matchedSkus">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <h3>Skipped SKUs</h3>
-                            <div class="value" id="skippedSkus">0</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Preview Table -->
-                <div id="previewSection" style="display: none;">
-                    <h3 style="margin-top: 20px;">Data Preview:</h3>
-                    <table class="preview-table" id="previewTable">
-                        <thead>
-                            <tr>
-                                <th>SKU</th>
-                                <th>QuickBooks Item</th>
-                                <th>Quantity</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="previewBody"></tbody>
-                    </table>
-                </div>
-                
-                <!-- Download Section -->
-                <div id="downloadSection">
-                    <h3>IIF File Ready!</h3>
-                    <p>Your inventory adjustment file has been generated successfully.</p>
-                    <a id="downloadLink" download="inventory_adjustment.iif">Download IIF File</a>
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button class="btn btn-outline" onclick="closeModal('importModal')">Cancel</button>
+                    <button class="btn btn-primary" onclick="importSkus()">
+                        <i class="fas fa-upload"></i>
+                        Import SKUs
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <script>
-        // Global variables
-        let skuLookupTable = {};
-        let processedData = [];
-        let skuAliases = {};
-        let skuList = [];
-        
-        // Initialize date fields
-        document.addEventListener('DOMContentLoaded', function() {
-            setYesterday();
-        });
-        
-        // Build SKU lookup table from QuickBooks list
-        function buildSkuLookup() {
-            const qbSkuList = document.getElementById('qbSkuList').value.trim();
-            if (!qbSkuList) {
-                showStatus('skuStatus', 'Please paste your QuickBooks SKU list first', 'error');
-                return;
-            }
-            
-            skuLookupTable = {};
-            const lines = qbSkuList.split('\n');
-            let count = 0;
-            
-            lines.forEach(line => {
-                line = line.trim();
-                if (!line) return;
-                
-                // Check if line contains a colon (subitem format)
-                if (line.includes(':')) {
-                    // Extract the actual SKU after the colon
-                    const parts = line.split(':');
-                    const actualSku = parts[parts.length - 1].trim();
-                    // Store with lowercase key for case-insensitive lookup
-                    skuLookupTable[actualSku.toLowerCase()] = line;
-                } else {
-                    // Standalone SKU without subitem
-                    // Store with lowercase key for case-insensitive lookup
-                    skuLookupTable[line.toLowerCase()] = line;
-                }
-                count++;
-            });
-            
-            showStatus('skuStatus', `SKU lookup table built successfully! ${count} items loaded.`, 'success');
-            loadAliases(); // Load any saved aliases
-            displayAliases(); // Show current aliases
-        }
+    <!-- Add SKU Modal -->
+    <div id="addSkuModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New SKU</h3>
+                <button class="modal-close" onclick="closeModal('addSkuModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">SKU Name</label>
+                    <input type="text" class="form-input" id="newSkuName" placeholder="e.g., SI-P06C">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Category (Optional)</label>
+                    <input type="text" class="form-input" id="newSkuCategory" placeholder="e.g., SHELVING - WIRE">
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button class="btn btn-outline" onclick="closeModal('addSkuModal')">Cancel</button>
+                    <button class="btn btn-primary" onclick="addSku()">
+                        <i class="fas fa-plus"></i>
+                        Add SKU
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        // SKU Management Functions
-        function saveSkuList() {
-            const qbSkuList = document.getElementById('qbSkuList').value.trim();
-            if (!qbSkuList) {
-                showStatus('skuStatus', 'No SKU list to save', 'error');
-                return;
-            }
-            localStorage.setItem('qbSkuList', qbSkuList);
-            showStatus('skuStatus', 'SKU list saved successfully!', 'success');
-        }
+    <!-- Add Alias Modal -->
+    <div id="aliasModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add SKU Alias</h3>
+                <button class="modal-close" onclick="closeModal('aliasModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">ShipStation SKU</label>
+                    <input type="text" class="form-input" id="aliasShipstationSku" placeholder="e.g., si-apsc">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">QuickBooks SKU</label>
+                    <input type="text" class="form-input" id="aliasQuickbooksSku" placeholder="e.g., SI-APSC">
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button class="btn btn-outline" onclick="closeModal('aliasModal')">Cancel</button>
+                    <button class="btn btn-primary" onclick="addAlias()">
+                        <i class="fas fa-link"></i>
+                        Add Alias
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        function loadSkuList() {
-            const saved = localStorage.getItem('qbSkuList');
-            if (saved) {
-                document.getElementById('qbSkuList').value = saved;
-                showStatus('skuStatus', 'SKU list loaded successfully!', 'success');
-            } else {
-                showStatus('skuStatus', 'No saved SKU list found', 'error');
-            }
-        }
-
-        function addNewSku() {
-            const name = document.getElementById('newSkuName').value.trim();
-            const category = document.getElementById('newSkuCategory').value.trim();
-            
-            if (!name) {
-                showStatus('skuStatus', 'Please enter a SKU name', 'error');
-                return;
-            }
-
-            const qbSkuList = document.getElementById('qbSkuList');
-            let newLine;
-            
-            if (category) {
-                newLine = `${category}:${name}`;
-            } else {
-                newLine = name;
-            }
-
-            // Add to the textarea
-            if (qbSkuList.value.trim()) {
-                qbSkuList.value += '\n' + newLine;
-            } else {
-                qbSkuList.value = newLine;
-            }
-
-            // Clear inputs
-            document.getElementById('newSkuName').value = '';
-            document.getElementById('newSkuCategory').value = '';
-
-            showStatus('skuStatus', `Added "${newLine}" to SKU list. Remember to rebuild the lookup table!`, 'success');
-        }
-
-        function addSkuAlias() {
-            const shipstation = document.getElementById('aliasShipstation').value.trim();
-            const quickbooks = document.getElementById('aliasQuickbooks').value.trim();
-            
-            if (!shipstation || !quickbooks) {
-                showStatus('skuStatus', 'Please enter both ShipStation and QuickBooks SKUs', 'error');
-                return;
-            }
-
-            // Store alias (case-insensitive key)
-            skuAliases[shipstation.toLowerCase()] = quickbooks;
-            
-            // Save to localStorage
-            localStorage.setItem('skuAliases', JSON.stringify(skuAliases));
-            
-            // Clear inputs
-            document.getElementById('aliasShipstation').value = '';
-            document.getElementById('aliasQuickbooks').value = '';
-            
-            displayAliases();
-            showStatus('skuStatus', `Added alias: "${shipstation}" → "${quickbooks}"`, 'success');
-        }
-
-        function loadAliases() {
-            const saved = localStorage.getItem('skuAliases');
-            if (saved) {
-                skuAliases = JSON.parse(saved);
-            }
-        }
-
-        function displayAliases() {
-            const container = document.getElementById('aliasesDisplay');
-            container.innerHTML = '';
-            
-            const aliases = Object.entries(skuAliases);
-            if (aliases.length === 0) {
-                container.innerHTML = '<p style="color: #666; font-style: italic;">No aliases defined yet</p>';
-                return;
-            }
-
-            aliases.forEach(([shipstation, quickbooks]) => {
-                const div = document.createElement('div');
-                div.className = 'alias-item';
-                div.innerHTML = `
-                    <span class="alias-mapping">${shipstation} → ${quickbooks}</span>
-                    <button class="delete-btn" onclick="removeAlias('${shipstation}')">Delete</button>
-                `;
-                container.appendChild(div);
-            });
-        }
-
-        function removeAlias(shipstationSku) {
-            delete skuAliases[shipstationSku];
-            localStorage.setItem('skuAliases', JSON.stringify(skuAliases));
-            displayAliases();
-            showStatus('skuStatus', `Removed alias for "${shipstationSku}"`, 'success');
-        }
-
-        function searchSkus() {
-            const query = document.getElementById('skuSearch').value.trim().toLowerCase();
-            const container = document.getElementById('skuSearchResults');
-            
-            if (!query) {
-                container.innerHTML = '';
-                return;
-            }
-
-            const results = [];
-            
-            // Search in lookup table
-            Object.entries(skuLookupTable).forEach(([key, value]) => {
-                if (key.includes(query) || value.toLowerCase().includes(query)) {
-                    results.push({ type: 'QuickBooks', sku: value });
-                }
-            });
-            
-            // Search in aliases
-            Object.entries(skuAliases).forEach(([shipstation, quickbooks]) => {
-                if (shipstation.includes(query) || quickbooks.toLowerCase().includes(query)) {
-                    results.push({ type: 'Alias', sku: `${shipstation} → ${quickbooks}` });
-                }
-            });
-
-            displaySearchResults(results);
-        }
-
-        function showAllSkus() {
-            const results = [];
-            
-            // Add all QuickBooks SKUs
-            Object.entries(skuLookupTable).forEach(([key, value]) => {
-                results.push({ type: 'QuickBooks', sku: value });
-            });
-            
-            // Add all aliases
-            Object.entries(skuAliases).forEach(([shipstation, quickbooks]) => {
-                results.push({ type: 'Alias', sku: `${shipstation} → ${quickbooks}` });
-            });
-
-            displaySearchResults(results.slice(0, 50)); // Limit to first 50 for performance
-        }
-
-        function displaySearchResults(results) {
-            const container = document.getElementById('skuSearchResults');
-            container.innerHTML = '';
-            
-            if (results.length === 0) {
-                container.innerHTML = '<p style="color: #666; font-style: italic;">No results found</p>';
-                return;
-            }
-
-            results.forEach(result => {
-                const div = document.createElement('div');
-                div.className = 'sku-result';
-                div.innerHTML = `<strong>[${result.type}]</strong> ${result.sku}`;
-                container.appendChild(div);
-            });
-
-            if (results.length >= 50) {
-                const div = document.createElement('div');
-                div.innerHTML = '<p style="color: #666; font-style: italic;">... showing first 50 results</p>';
-                container.appendChild(div);
-            }
-        }
-        
-        // Date helper functions
-        function setYesterday() {
-            const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
-            const dateStr = yesterday.toISOString().split('T')[0];
-            document.getElementById('startDate').value = dateStr;
-            document.getElementById('endDate').value = dateStr;
-        }
-        
-        function setLastWeek() {
-            const end = new Date();
-            const start = new Date();
-            start.setDate(start.getDate() - 7);
-            document.getElementById('startDate').value = start.toISOString().split('T')[0];
-            document.getElementById('endDate').value = end.toISOString().split('T')[0];
-        }
-        
-        function setLastMonth() {
-            const end = new Date();
-            const start = new Date();
-            start.setDate(start.getDate() - 30);
-            document.getElementById('startDate').value = start.toISOString().split('T')[0];
-            document.getElementById('endDate').value = end.toISOString().split('T')[0];
-        }
-        
-        // Main processing function
-        async function processData() {
-            const startDate = document.getElementById('startDate').value;
-            const endDate = document.getElementById('endDate').value;
-            
-            if (!startDate || !endDate) {
-                showStatus('processStatus', 'Please select date range', 'error');
-                return;
-            }
-            
-            if (Object.keys(skuLookupTable).length === 0) {
-                showStatus('processStatus', 'Please build SKU lookup table first', 'error');
-                return;
-            }
-            
-            const processBtn = document.getElementById('processBtn');
-            processBtn.disabled = true;
-            
-            showStatus('processStatus', 'Fetching shipments from ShipStation...', 'info');
-            showProgress(25);
-            
-            try {
-                // Fetch shipments from API
-                const response = await fetch('/api/shipments', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        startDate: startDate + 'T00:00:01',
-                        endDate: endDate + 'T23:59:59'
-                    })
-                });
-                
-                if (!response.ok) {
-                    throw new Error('Failed to fetch shipments');
-                }
-                
-                const data = await response.json();
-                showProgress(50);
-                
-                // Process the consolidated data
-                processedData = processShipmentData(data.consolidatedItems);
-                showProgress(75);
-                
-                // Display statistics and preview
-                displayStatistics(data, processedData);
-                displayPreview(processedData);
-                
-                // Generate IIF file
-                showStatus('processStatus', 'Generating IIF file...', 'info');
-                const iifResponse = await fetch('/api/generate-iif', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        items: processedData.filter(item => item.matched),
-                        inventoryAccount: document.getElementById('inventoryAccount').value,
-                        startDate,
-                        endDate
-                    })
-                });
-                
-                if (!iifResponse.ok) {
-                    throw new Error('Failed to generate IIF file');
-                }
-                
-                const iifData = await iifResponse.text();
-                showProgress(100);
-                
-                // Create download link
-                createDownloadLink(iifData);
-                
-                showStatus('processStatus', 'Processing complete! IIF file ready for download.', 'success');
-                
-            } catch (error) {
-                console.error('Processing error:', error);
-                showStatus('processStatus', `Error: ${error.message}`, 'error');
-            } finally {
-                processBtn.disabled = false;
-                setTimeout(() => hideProgress(), 2000);
-            }
-        }
-        
-        // Process shipment data with SKU matching
-        function processShipmentData(consolidatedItems) {
-            const results = [];
-            
-            for (const [sku, quantity] of Object.entries(consolidatedItems)) {
-                // Check aliases first, then fall back to direct lookup
-                const aliasedSku = skuAliases[sku.toLowerCase()];
-                let qbItem = null;
-                
-                if (aliasedSku) {
-                    // If there's an alias, look up the aliased QuickBooks SKU
-                    qbItem = skuLookupTable[aliasedSku.toLowerCase()] || aliasedSku;
-                } else {
-                    // No alias, check direct lookup
-                    qbItem = skuLookupTable[sku.toLowerCase()];
-                }
-                
-                results.push({
-                    sku,
-                    qbItem: qbItem || null,
-                    quantity,
-                    matched: !!qbItem
-                });
-            }
-            
-            return results;
-        }
-        
-        // Display statistics
-        function displayStatistics(apiData, processedData) {
-            document.getElementById('statistics').style.display = 'block';
-            document.getElementById('totalOrders').textContent = apiData.totalOrders || 0;
-            document.getElementById('uniqueSkus').textContent = processedData.length;
-            document.getElementById('matchedSkus').textContent = processedData.filter(item => item.matched).length;
-            document.getElementById('skippedSkus').textContent = processedData.filter(item => !item.matched).length;
-        }
-        
-        // Display preview table
-        function displayPreview(data) {
-            const previewBody = document.getElementById('previewBody');
-            previewBody.innerHTML = '';
-            
-            // Show ALL items in preview
-            data.forEach(item => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${item.sku}</td>
-                    <td>${item.qbItem || 'Not Found'}</td>
-                    <td>${item.quantity}</td>
-                    <td>${item.matched ? 
-                        '<span style="color: green;">✓ Matched</span>' : 
-                        '<span style="color: orange;">⚠ Skipped</span>'}</td>
-                `;
-                previewBody.appendChild(row);
-            });
-            
-            document.getElementById('previewSection').style.display = 'block';
-        }
-        
-        // Create download link for IIF file
-        function createDownloadLink(iifContent) {
-            const blob = new Blob([iifContent], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const downloadLink = document.getElementById('downloadLink');
-            
-            downloadLink.href = url;
-            const date = new Date().toISOString().split('T')[0];
-            downloadLink.download = `inventory_adjustment_${date}.iif`;
-            
-            document.getElementById('downloadSection').style.display = 'block';
-        }
-        
-        // UI Helper functions
-        function showStatus(elementId, message, type) {
-            const element = document.getElementById(elementId);
-            element.textContent = message;
-            element.className = `status ${type}`;
-            element.style.display = 'block';
-        }
-        
-        function showProgress(percent) {
-            document.getElementById('progressBar').style.display = 'block';
-            document.getElementById('progressBarFill').style.width = percent + '%';
-        }
-        
-        function hideProgress() {
-            document.getElementById('progressBar').style.display = 'none';
-        }
-    </script>
+    <script src="app.js"></script>
 </body>
 </html>
