@@ -139,10 +139,33 @@ async function handlePost(req, res, action) {
         const existingSkus = await getSkus();
         console.log(`Found ${existingSkus.length} existing SKUs in database`);
         
+        // Debug: log some existing SKU names
+        if (existingSkus.length > 0) {
+          console.log('Sample existing SKUs:', existingSkus.slice(0, 5).map(s => s.name));
+        }
+        
         const existingNames = new Set(existingSkus.map(s => s.name.toLowerCase()));
+        console.log('Existing names set size:', existingNames.size);
+        
+        // Debug: log some new SKU names being checked
+        if (newSkus.length > 0) {
+          console.log('Sample new SKUs:', newSkus.slice(0, 5).map(s => s.name));
+        }
+        
         const uniqueNewSkus = newSkus.filter(sku => !existingNames.has(sku.name.toLowerCase()));
         
         console.log(`Found ${uniqueNewSkus.length} new SKUs to import (${newSkus.length - uniqueNewSkus.length} already exist)`);
+        
+        // Debug: if no unique new SKUs but we expected some, log details
+        if (uniqueNewSkus.length === 0 && newSkus.length > 100) {
+          console.log('DEBUG: No unique SKUs found but expected many. Checking first few:');
+          for (let i = 0; i < Math.min(5, newSkus.length); i++) {
+            const sku = newSkus[i];
+            const lowerName = sku.name.toLowerCase();
+            const exists = existingNames.has(lowerName);
+            console.log(`SKU "${sku.name}" (lowercase: "${lowerName}") exists: ${exists}`);
+          }
+        }
         
         let importedCount = 0;
         
