@@ -8,6 +8,7 @@
     "deploy": "vercel --prod"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.55.0",
     "axios": "^1.6.5",
     "cors": "^2.8.5",
     "date-fns": "^3.2.0"

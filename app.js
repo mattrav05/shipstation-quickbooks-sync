@@ -31,7 +31,7 @@ const App = {
     async loadData() {
         try {
             console.log('Loading data from database...');
-            const response = await fetch('/api/database-hybrid?action=all');
+            const response = await fetch('/api/database-supabase?action=all');
             console.log('Database response status:', response.status);
             
             if (response.ok) {
@@ -192,7 +192,7 @@ async function importSkus() {
     
     try {
         console.log('Starting SKU import...');
-        const response = await fetch('/api/database-hybrid?action=import-skus', {
+        const response = await fetch('/api/database-supabase?action=import-skus', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ skuText })
@@ -241,7 +241,7 @@ async function addSku() {
     }
     
     try {
-        const response = await fetch('/api/database-hybrid?action=add-sku', {
+        const response = await fetch('/api/database-supabase?action=add-sku', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, category })
@@ -275,7 +275,7 @@ async function addAlias() {
     }
     
     try {
-        const response = await fetch('/api/database-hybrid?action=add-alias', {
+        const response = await fetch('/api/database-supabase?action=add-alias', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ shipstationSku, quickbooksSku })
@@ -316,7 +316,7 @@ async function addQuickAlias() {
     }
     
     try {
-        const response = await fetch('/api/database-hybrid?action=add-alias', {
+        const response = await fetch('/api/database-supabase?action=add-alias', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ shipstationSku, quickbooksSku })
@@ -346,7 +346,7 @@ async function deleteSku(skuId) {
     }
     
     try {
-        const response = await fetch(`/api/database-hybrid?action=sku&id=${skuId}`, {
+        const response = await fetch(`/api/database-supabase?action=sku&id=${skuId}`, {
             method: 'DELETE'
         });
         
@@ -372,7 +372,7 @@ async function deleteAlias(shipstationSku) {
     }
     
     try {
-        const response = await fetch(`/api/database-hybrid?action=alias&shipstationSku=${encodeURIComponent(shipstationSku)}`, {
+        const response = await fetch(`/api/database-supabase?action=alias&shipstationSku=${encodeURIComponent(shipstationSku)}`, {
             method: 'DELETE'
         });
         
@@ -522,7 +522,7 @@ async function syncData() {
         document.getElementById('syncResults').style.display = 'block';
         
         // Add to history
-        await fetch('/api/database-hybrid?action=add-history', {
+        await fetch('/api/database-supabase?action=add-history', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -651,7 +651,7 @@ async function generateIIF() {
         URL.revokeObjectURL(url);
         
         // Add to history
-        await fetch('/api/database-hybrid?action=add-history', {
+        await fetch('/api/database-supabase?action=add-history', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
