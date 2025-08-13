@@ -606,11 +606,19 @@ async function generateIIF() {
         return;
     }
     
-    const matchedItems = App.data.currentSync.filter(item => item.matched);
+    const matchedItems = App.data.currentSync.filter(item => 
+        item.matched && 
+        item.qbItem && 
+        item.qbItem !== 'Not Found' && 
+        item.quantity > 0
+    );
+    
     if (matchedItems.length === 0) {
-        App.showNotification('No matched items to export', 'error');
+        App.showNotification('No matched items to export. Create aliases for unmatched SKUs first.', 'error');
         return;
     }
+    
+    console.log(`Generating IIF for ${matchedItems.length} matched items out of ${App.data.currentSync.length} total`);
     
     try {
         const response = await fetch('/api/generate-iif', {

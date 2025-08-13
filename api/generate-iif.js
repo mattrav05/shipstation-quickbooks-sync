@@ -1,3 +1,36 @@
+/*
+ * QuickBooks IIF (Intuit Interchange Format) Generator
+ * 
+ * REQUIRED FIELDS FOR QUICKBOOKS COMPATIBILITY:
+ * 
+ * 1. HDR Section (Header):
+ *    - PROD: Product name (QuickBooks Pro/Premier/Enterprise)
+ *    - VER: Version
+ *    - IIFVER: IIF version (usually 1)
+ *    - DATE/TIME: Current date and time
+ * 
+ * 2. TRNS Section (Transaction):
+ *    - TRNSTYPE: INVADJ (Inventory Adjustment)
+ *    - DATE: Transaction date (MM/DD/YYYY format)
+ *    - ACCNT: Account name (must exist in QuickBooks)
+ *    - AMOUNT: Total adjustment amount
+ *    - DOCNUM: Unique document number
+ *    - MEMO: Description
+ * 
+ * 3. SPL Section (Split Line):
+ *    - ACCNT: Account being adjusted
+ *    - AMOUNT: Line amount (negative reduces inventory)
+ *    - INVITEM: Item name (must EXACTLY match QuickBooks item)
+ *    - QNTY: Quantity being adjusted (negative reduces)
+ * 
+ * CRITICAL REQUIREMENTS:
+ * - Item names must EXACTLY match QuickBooks items (case-sensitive)
+ * - All referenced accounts must exist in QuickBooks
+ * - Use tab separators (\t) between fields
+ * - End each transaction with ENDTRNS
+ * - Only include items that have valid QuickBooks matches
+ */
+
 module.exports = async (req, res) => {
     // Enable CORS
     res.setHeader('Access-Control-Allow-Credentials', true);
@@ -40,18 +73,39 @@ module.exports = async (req, res) => {
         const adjustmentDate = new Date().toLocaleDateString('en-US');
         const memo = `ShipStation sync ${startDate} to ${endDate}`;
         
-        items.forEach(item => {
-            if (!item.qbItem || item.quantity === 0) return;
+        // Filter to ONLY matched items to prevent QuickBooks errors
+        const matchedItems = items.filter(item => 
+            item.matched && 
+            item.qbItem && 
+            item.qbItem !== 'Not Found' && 
+            item.quantity > 0
+        );
+        
+        console.log(`Generating IIF for ${matchedItems.length} matched items (filtered from ${items.length} total)`);
+        
+        if (matchedItems.length === 0) {
+            return res.status(400).json({ 
+                error: 'No matched items to include in IIF file',
+                message: 'All items must have matching QuickBooks SKUs to generate IIF'
+            });
+        }
+        
+        matchedItems.forEach(item => {
+            // Clean the QuickBooks item name (remove any category prefix if present)
+            let qbItemName = item.qbItem;
+            if (qbItemName.includes(':')) {
+                // If format is "CATEGORY:ITEM", use just the ITEM part
+                qbItemName = qbItemName.split(':').pop().trim();
+            }
             
             // Each item gets its own transaction for clarity
             const docNum = `SS-ADJ-${new Date().toISOString().split('T')[0]}-${transactionId}`;
             
-            // TRNS line (header of transaction)
-            iifContent += `TRNS\t${transactionId}\tGENERAL JOURNAL\t${adjustmentDate}\t${inventoryAccount || '1500 · Inventory'}\t\t\t${item.quantity}\t${docNum}\t${memo}\n`;
+            // TRNS line (header of transaction) - Inventory Adjustment format
+            iifContent += `TRNS\t${transactionId}\tINVADJ\t${adjustmentDate}\t${inventoryAccount || '1500 · Inventory'}\t\t\t-${item.quantity}\t${docNum}\t${memo}\n`;
             
-            // SPL line (split line with item details)
-            // Negative quantity to reduce inventory
-            iifContent += `SPL\t${transactionId}\tGENERAL JOURNAL\t${adjustmentDate}\tCost of Goods Sold\t\t\t-${item.quantity}\t${docNum}\t${memo}\t${item.qbItem}\t-${item.quantity}\n`;
+            // SPL line (split line with item details) - Reduces inventory
+            iifContent += `SPL\t${transactionId}\tINVADJ\t${adjustmentDate}\t${inventoryAccount || '1500 · Inventory'}\t\t\t-${item.quantity}\t${docNum}\tSold via ShipStation\t${qbItemName}\t-${item.quantity}\n`;
             
             // End transaction
             iifContent += 'ENDTRNS\n';
