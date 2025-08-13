@@ -135,7 +135,10 @@ async function handlePost(req, res, action) {
         console.log(`Parsed ${newSkus.length} unique SKUs from input`);
         
         // Get existing SKUs to check for duplicates
+        console.log('Fetching existing SKUs from database...');
         const existingSkus = await getSkus();
+        console.log(`Found ${existingSkus.length} existing SKUs in database`);
+        
         const existingNames = new Set(existingSkus.map(s => s.name.toLowerCase()));
         const uniqueNewSkus = newSkus.filter(sku => !existingNames.has(sku.name.toLowerCase()));
         

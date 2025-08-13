@@ -192,12 +192,20 @@ async function importSkus() {
     
     try {
         console.log('Starting SKU import...');
+        App.showNotification('Processing large SKU import, please wait...', 'info');
+        
+        // Add timeout for large imports
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutes timeout
+        
         const response = await fetch('/api/database-supabase?action=import-skus', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ skuText })
+            body: JSON.stringify({ skuText }),
+            signal: controller.signal
         });
         
+        clearTimeout(timeoutId);
         console.log('Import response status:', response.status);
         
         if (response.ok) {
@@ -227,7 +235,13 @@ async function importSkus() {
         }
     } catch (error) {
         console.error('Import error:', error);
-        App.showNotification('Failed to import SKUs: ' + error.message, 'error');
+        if (error.name === 'AbortError') {
+            App.showNotification('Import timed out. Try with a smaller batch or contact support.', 'error');
+        } else if (error.message.includes('NetworkError') || error.message.includes('fetch')) {
+            App.showNotification('Network error during import. Please check your connection and try again.', 'error');
+        } else {
+            App.showNotification('Failed to import SKUs: ' + error.message, 'error');
+        }
     }
 }
 
