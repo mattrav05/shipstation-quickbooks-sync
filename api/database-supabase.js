@@ -132,31 +132,71 @@ async function handlePost(req, res, action) {
           return res.json({ success: true, imported: 0, duplicates: 0, total: 0 });
         }
         
+        console.log(`Parsed ${newSkus.length} unique SKUs from input`);
+        
         // Get existing SKUs to check for duplicates
         const existingSkus = await getSkus();
         const existingNames = new Set(existingSkus.map(s => s.name.toLowerCase()));
         const uniqueNewSkus = newSkus.filter(sku => !existingNames.has(sku.name.toLowerCase()));
         
+        console.log(`Found ${uniqueNewSkus.length} new SKUs to import (${newSkus.length - uniqueNewSkus.length} already exist)`);
+        
+        let importedCount = 0;
+        
         if (uniqueNewSkus.length > 0) {
-          // Insert new SKUs
-          const { data, error } = await supabase
-            .from('skus')
-            .insert(uniqueNewSkus.map(sku => ({
-              name: sku.name,
-              category: sku.category,
-              type: 'imported'
-            })));
-          
-          if (error) throw error;
+          // Use upsert with ON CONFLICT DO NOTHING to handle any race conditions
+          try {
+            const { data, error } = await supabase
+              .from('skus')
+              .upsert(uniqueNewSkus.map(sku => ({
+                name: sku.name,
+                category: sku.category,
+                type: 'imported'
+              })), { 
+                onConflict: 'name',
+                ignoreDuplicates: true 
+              })
+              .select();
+            
+            if (error) {
+              console.error('Upsert error:', error);
+              throw error;
+            }
+            
+            importedCount = data ? data.length : 0;
+            console.log(`Successfully imported ${importedCount} SKUs`);
+          } catch (error) {
+            console.error('Import failed, trying individual inserts:', error.message);
+            
+            // Fallback: try inserting one by one
+            for (const sku of uniqueNewSkus) {
+              try {
+                const { error: insertError } = await supabase
+                  .from('skus')
+                  .insert([{
+                    name: sku.name,
+                    category: sku.category,
+                    type: 'imported'
+                  }]);
+                
+                if (!insertError) {
+                  importedCount++;
+                }
+              } catch (individualError) {
+                console.log(`Skipped duplicate SKU: ${sku.name}`);
+              }
+            }
+          }
         }
         
         // Add history entry
         await addHistory({
           type: 'import',
-          message: `Imported ${uniqueNewSkus.length} SKUs`,
+          message: `Imported ${importedCount} new SKUs (${newSkus.length - importedCount} duplicates skipped)`,
           data: { 
-            imported: uniqueNewSkus.length, 
-            duplicates: newSkus.length - uniqueNewSkus.length 
+            imported: importedCount, 
+            duplicates: newSkus.length - importedCount,
+            total: newSkus.length
           }
         });
         
@@ -164,8 +204,8 @@ async function handlePost(req, res, action) {
         
         return res.json({
           success: true,
-          imported: uniqueNewSkus.length,
-          duplicates: newSkus.length - uniqueNewSkus.length,
+          imported: importedCount,
+          duplicates: newSkus.length - importedCount,
           total: updatedSkus.length
         });
       
@@ -435,6 +475,7 @@ function parseSkuText(text) {
   
   const lines = text.split('\n');
   const skus = [];
+  const seenSkus = new Set(); // Track duplicates within the import
   
   lines.forEach((line, index) => {
     line = line.trim();
@@ -452,12 +493,19 @@ function parseSkuText(text) {
       name = line;
     }
     
-    if (name) {
-      skus.push({
-        name,
-        category,
-        type: 'imported'
-      });
+    if (name && name.trim()) {
+      const normalizedName = name.trim();
+      const lowerName = normalizedName.toLowerCase();
+      
+      // Skip duplicates within the import text
+      if (!seenSkus.has(lowerName)) {
+        seenSkus.add(lowerName);
+        skus.push({
+          name: normalizedName,
+          category: category || null,
+          type: 'imported'
+        });
+      }
     }
   });
   

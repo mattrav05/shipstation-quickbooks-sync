@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS history (
 -- Settings table - stores application settings
 CREATE TABLE IF NOT EXISTS settings (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  inventory_account TEXT DEFAULT '1500 · Inventory',
+  inventory_account TEXT DEFAULT '1500 - Inventory',
   last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -63,5 +63,5 @@ CREATE POLICY "Enable all operations for authenticated users" ON settings
 
 -- Insert default settings
 INSERT INTO settings (inventory_account) 
-VALUES ('1500 · Inventory')
+VALUES ('1500 - Inventory')
 ON CONFLICT DO NOTHING;
