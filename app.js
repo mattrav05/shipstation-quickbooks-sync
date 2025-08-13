@@ -30,13 +30,27 @@ const App = {
     // Load all data from database
     async loadData() {
         try {
-            const response = await fetch('/api/database-persistent?action=all');
+            console.log('Loading data from database...');
+            const response = await fetch('/api/database-hybrid?action=all');
+            console.log('Database response status:', response.status);
+            
             if (response.ok) {
                 const data = await response.json();
+                console.log('Database data received:', data);
+                
                 this.data.skus = data.skus || [];
                 this.data.aliases = data.aliases || {};
                 this.data.history = data.history || [];
                 this.data.settings = data.settings || {};
+                
+                console.log('App data updated:', {
+                    skus: this.data.skus.length,
+                    aliases: Object.keys(this.data.aliases).length,
+                    history: this.data.history.length
+                });
+            } else {
+                const errorText = await response.text();
+                console.error('Failed to load data:', errorText);
             }
         } catch (error) {
             console.error('Error loading data:', error);
@@ -177,30 +191,43 @@ async function importSkus() {
     }
     
     try {
-        const response = await fetch('/api/database-persistent?action=import-skus', {
+        console.log('Starting SKU import...');
+        const response = await fetch('/api/database-hybrid?action=import-skus', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ skuText })
         });
         
+        console.log('Import response status:', response.status);
+        
         if (response.ok) {
             const result = await response.json();
+            console.log('Import result:', result);
+            
             App.showNotification(
                 `Imported ${result.imported} SKUs (${result.duplicates} duplicates skipped)`, 
                 'success'
             );
             
-            // Reload data and update UI
+            // Force reload data and update UI
+            console.log('Reloading data...');
             await App.loadData();
+            console.log('Updated data:', App.data);
+            
             App.updateStats();
             App.renderSkuTable();
+            
+            // Switch to inventory tab to show the results
+            showTab('inventory');
             closeModal('importModal');
         } else {
-            throw new Error('Import failed');
+            const errorText = await response.text();
+            console.error('Import failed:', errorText);
+            throw new Error('Import failed: ' + response.status);
         }
     } catch (error) {
         console.error('Import error:', error);
-        App.showNotification('Failed to import SKUs', 'error');
+        App.showNotification('Failed to import SKUs: ' + error.message, 'error');
     }
 }
 
@@ -214,7 +241,7 @@ async function addSku() {
     }
     
     try {
-        const response = await fetch('/api/database-persistent?action=add-sku', {
+        const response = await fetch('/api/database-hybrid?action=add-sku', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, category })
@@ -248,7 +275,7 @@ async function addAlias() {
     }
     
     try {
-        const response = await fetch('/api/database-persistent?action=add-alias', {
+        const response = await fetch('/api/database-hybrid?action=add-alias', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ shipstationSku, quickbooksSku })
@@ -289,7 +316,7 @@ async function addQuickAlias() {
     }
     
     try {
-        const response = await fetch('/api/database-persistent?action=add-alias', {
+        const response = await fetch('/api/database-hybrid?action=add-alias', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ shipstationSku, quickbooksSku })
@@ -319,7 +346,7 @@ async function deleteSku(skuId) {
     }
     
     try {
-        const response = await fetch(`/api/database-persistent?action=sku&id=${skuId}`, {
+        const response = await fetch(`/api/database-hybrid?action=sku&id=${skuId}`, {
             method: 'DELETE'
         });
         
@@ -345,7 +372,7 @@ async function deleteAlias(shipstationSku) {
     }
     
     try {
-        const response = await fetch(`/api/database-persistent?action=alias&shipstationSku=${encodeURIComponent(shipstationSku)}`, {
+        const response = await fetch(`/api/database-hybrid?action=alias&shipstationSku=${encodeURIComponent(shipstationSku)}`, {
             method: 'DELETE'
         });
         
@@ -495,7 +522,7 @@ async function syncData() {
         document.getElementById('syncResults').style.display = 'block';
         
         // Add to history
-        await fetch('/api/database-persistent?action=add-history', {
+        await fetch('/api/database-hybrid?action=add-history', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -616,7 +643,7 @@ async function generateIIF() {
         URL.revokeObjectURL(url);
         
         // Add to history
-        await fetch('/api/database-persistent?action=add-history', {
+        await fetch('/api/database-hybrid?action=add-history', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

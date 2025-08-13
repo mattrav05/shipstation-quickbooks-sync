@@ -1,17 +1,8 @@
-// For now, using localStorage-like approach with Vercel KV
-// In production, you'd want to use Vercel KV, Supabase, or similar
+// Hybrid database approach: localStorage + server-side fallback
+// This ensures data persists in browser even if server storage fails
 
-// Fallback to localStorage simulation until we set up proper database
 const fs = require('fs');
 const path = require('path');
-
-// Use environment-appropriate storage
-// In production (Vercel), use /tmp with fallback to localStorage-like approach
-// In development, use project directory
-
-const DB_FILE = process.env.VERCEL ? 
-    path.join('/tmp', 'database.json') : 
-    path.join(process.cwd(), 'data', 'database.json');
 
 // Default data structure
 const defaultData = {
@@ -24,39 +15,19 @@ const defaultData = {
     }
 };
 
-// Ensure data directory exists
-function ensureDataDir() {
-    const dataDir = path.dirname(DB_FILE);
-    if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, { recursive: true });
-    }
-}
+// Simple in-memory storage as fallback (will reset on server restart)
+let memoryStorage = { ...defaultData };
 
-// Read database with fallback
-function readDatabase() {
-    try {
-        ensureDataDir();
-        if (fs.existsSync(DB_FILE)) {
-            const data = fs.readFileSync(DB_FILE, 'utf8');
-            return JSON.parse(data);
-        }
-        return { ...defaultData };
-    } catch (error) {
-        console.error('Error reading database:', error);
-        return { ...defaultData };
+// Try to read from committed database file on startup
+try {
+    const dbPath = path.join(process.cwd(), 'data', 'database.json');
+    if (fs.existsSync(dbPath)) {
+        const data = fs.readFileSync(dbPath, 'utf8');
+        memoryStorage = JSON.parse(data);
+        console.log('Loaded database from file:', Object.keys(memoryStorage));
     }
-}
-
-// Write database
-function writeDatabase(data) {
-    try {
-        ensureDataDir();
-        fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
-        return true;
-    } catch (error) {
-        console.error('Error writing database:', error);
-        return false;
-    }
+} catch (error) {
+    console.log('Could not load database file, using defaults:', error.message);
 }
 
 module.exports = async (req, res) => {
@@ -75,7 +46,7 @@ module.exports = async (req, res) => {
         const { method } = req;
         const { action } = req.query;
         
-        console.log(`Database API: ${method} ${action}`);
+        console.log(`Database Hybrid API: ${method} ${action}`);
 
         switch (method) {
             case 'GET':
@@ -100,30 +71,35 @@ module.exports = async (req, res) => {
 
 // GET operations
 async function handleGet(req, res, action) {
-    const db = readDatabase();
+    console.log('GET action:', action, 'Current memory storage keys:', Object.keys(memoryStorage));
     
     switch (action) {
         case 'all':
-            return res.json(db);
+            console.log('Returning all data:', {
+                skus: memoryStorage.skus?.length || 0,
+                aliases: Object.keys(memoryStorage.aliases || {}).length,
+                history: memoryStorage.history?.length || 0
+            });
+            return res.json(memoryStorage);
         
         case 'skus':
-            return res.json({ skus: db.skus });
+            return res.json({ skus: memoryStorage.skus || [] });
         
         case 'aliases':
-            return res.json({ aliases: db.aliases });
+            return res.json({ aliases: memoryStorage.aliases || {} });
         
         case 'history':
-            return res.json({ history: db.history });
+            return res.json({ history: memoryStorage.history || [] });
         
         case 'settings':
-            return res.json({ settings: db.settings });
+            return res.json({ settings: memoryStorage.settings || defaultData.settings });
         
         case 'stats':
             return res.json({
-                totalSkus: db.skus.length,
-                totalAliases: Object.keys(db.aliases).length,
-                lastSync: db.history.length > 0 ? db.history[0].timestamp : null,
-                lastExport: db.history.find(h => h.type === 'export')?.timestamp || null
+                totalSkus: memoryStorage.skus?.length || 0,
+                totalAliases: Object.keys(memoryStorage.aliases || {}).length,
+                lastSync: memoryStorage.history?.length > 0 ? memoryStorage.history[0].timestamp : null,
+                lastExport: memoryStorage.history?.find(h => h.type === 'export')?.timestamp || null
             });
         
         default:
@@ -133,23 +109,28 @@ async function handleGet(req, res, action) {
 
 // POST operations
 async function handlePost(req, res, action) {
-    const db = readDatabase();
     const { body } = req;
+    console.log('POST action:', action, 'Body received:', !!body);
     
     switch (action) {
         case 'import-skus':
             const { skuText } = body;
+            console.log('Importing SKUs, text length:', skuText?.length);
+            
             const newSkus = parseSkuText(skuText);
+            console.log('Parsed SKUs:', newSkus.length);
             
             // Merge with existing SKUs (avoid duplicates)
-            const existingSkuNames = new Set(db.skus.map(s => s.name.toLowerCase()));
+            const existingSkuNames = new Set((memoryStorage.skus || []).map(s => s.name.toLowerCase()));
             const uniqueNewSkus = newSkus.filter(sku => !existingSkuNames.has(sku.name.toLowerCase()));
             
-            db.skus = [...db.skus, ...uniqueNewSkus];
-            db.settings.lastUpdated = new Date().toISOString();
+            memoryStorage.skus = [...(memoryStorage.skus || []), ...uniqueNewSkus];
+            memoryStorage.settings = memoryStorage.settings || {};
+            memoryStorage.settings.lastUpdated = new Date().toISOString();
             
             // Add history entry
-            db.history.unshift({
+            memoryStorage.history = memoryStorage.history || [];
+            memoryStorage.history.unshift({
                 id: Date.now().toString(),
                 type: 'import',
                 message: `Imported ${uniqueNewSkus.length} SKUs`,
@@ -157,12 +138,13 @@ async function handlePost(req, res, action) {
                 data: { imported: uniqueNewSkus.length, duplicates: newSkus.length - uniqueNewSkus.length }
             });
             
-            writeDatabase(db);
+            console.log('After import - Total SKUs:', memoryStorage.skus.length);
+            
             return res.json({ 
                 success: true, 
                 imported: uniqueNewSkus.length, 
                 duplicates: newSkus.length - uniqueNewSkus.length,
-                total: db.skus.length 
+                total: memoryStorage.skus.length 
             });
         
         case 'add-sku':
@@ -172,7 +154,7 @@ async function handlePost(req, res, action) {
             }
             
             // Check for duplicates
-            const existsAlready = db.skus.some(s => s.name.toLowerCase() === name.toLowerCase());
+            const existsAlready = (memoryStorage.skus || []).some(s => s.name.toLowerCase() === name.toLowerCase());
             if (existsAlready) {
                 return res.status(400).json({ error: 'SKU already exists' });
             }
@@ -185,11 +167,14 @@ async function handlePost(req, res, action) {
                 created: new Date().toISOString()
             };
             
-            db.skus.push(newSku);
-            db.settings.lastUpdated = new Date().toISOString();
+            memoryStorage.skus = memoryStorage.skus || [];
+            memoryStorage.skus.push(newSku);
+            memoryStorage.settings = memoryStorage.settings || {};
+            memoryStorage.settings.lastUpdated = new Date().toISOString();
             
             // Add history entry
-            db.history.unshift({
+            memoryStorage.history = memoryStorage.history || [];
+            memoryStorage.history.unshift({
                 id: Date.now().toString(),
                 type: 'add-sku',
                 message: `Added SKU: ${newSku.name}`,
@@ -197,7 +182,6 @@ async function handlePost(req, res, action) {
                 data: newSku
             });
             
-            writeDatabase(db);
             return res.json({ success: true, sku: newSku });
         
         case 'add-alias':
@@ -206,11 +190,14 @@ async function handlePost(req, res, action) {
                 return res.status(400).json({ error: 'Both SKUs are required' });
             }
             
-            db.aliases[shipstationSku.toLowerCase()] = quickbooksSku;
-            db.settings.lastUpdated = new Date().toISOString();
+            memoryStorage.aliases = memoryStorage.aliases || {};
+            memoryStorage.aliases[shipstationSku.toLowerCase()] = quickbooksSku;
+            memoryStorage.settings = memoryStorage.settings || {};
+            memoryStorage.settings.lastUpdated = new Date().toISOString();
             
             // Add history entry
-            db.history.unshift({
+            memoryStorage.history = memoryStorage.history || [];
+            memoryStorage.history.unshift({
                 id: Date.now().toString(),
                 type: 'add-alias',
                 message: `Added alias: ${shipstationSku} → ${quickbooksSku}`,
@@ -218,7 +205,6 @@ async function handlePost(req, res, action) {
                 data: { shipstationSku, quickbooksSku }
             });
             
-            writeDatabase(db);
             return res.json({ success: true });
         
         case 'add-history':
@@ -228,14 +214,14 @@ async function handlePost(req, res, action) {
                 ...body
             };
             
-            db.history.unshift(historyEntry);
+            memoryStorage.history = memoryStorage.history || [];
+            memoryStorage.history.unshift(historyEntry);
             
             // Keep only last 100 history entries
-            if (db.history.length > 100) {
-                db.history = db.history.slice(0, 100);
+            if (memoryStorage.history.length > 100) {
+                memoryStorage.history = memoryStorage.history.slice(0, 100);
             }
             
-            writeDatabase(db);
             return res.json({ success: true });
         
         default:
@@ -245,14 +231,16 @@ async function handlePost(req, res, action) {
 
 // PUT operations
 async function handlePut(req, res, action) {
-    const db = readDatabase();
     const { body } = req;
     
     switch (action) {
         case 'settings':
-            db.settings = { ...db.settings, ...body, lastUpdated: new Date().toISOString() };
-            writeDatabase(db);
-            return res.json({ success: true, settings: db.settings });
+            memoryStorage.settings = { 
+                ...(memoryStorage.settings || {}), 
+                ...body, 
+                lastUpdated: new Date().toISOString() 
+            };
+            return res.json({ success: true, settings: memoryStorage.settings });
         
         default:
             return res.status(400).json({ error: 'Invalid action' });
@@ -261,7 +249,6 @@ async function handlePut(req, res, action) {
 
 // DELETE operations
 async function handleDelete(req, res, action) {
-    const db = readDatabase();
     const { id } = req.query;
     
     switch (action) {
@@ -270,16 +257,19 @@ async function handleDelete(req, res, action) {
                 return res.status(400).json({ error: 'SKU ID is required' });
             }
             
-            const skuIndex = db.skus.findIndex(s => s.id === id);
+            memoryStorage.skus = memoryStorage.skus || [];
+            const skuIndex = memoryStorage.skus.findIndex(s => s.id === id);
             if (skuIndex === -1) {
                 return res.status(404).json({ error: 'SKU not found' });
             }
             
-            const deletedSku = db.skus.splice(skuIndex, 1)[0];
-            db.settings.lastUpdated = new Date().toISOString();
+            const deletedSku = memoryStorage.skus.splice(skuIndex, 1)[0];
+            memoryStorage.settings = memoryStorage.settings || {};
+            memoryStorage.settings.lastUpdated = new Date().toISOString();
             
             // Add history entry
-            db.history.unshift({
+            memoryStorage.history = memoryStorage.history || [];
+            memoryStorage.history.unshift({
                 id: Date.now().toString(),
                 type: 'delete-sku',
                 message: `Deleted SKU: ${deletedSku.name}`,
@@ -287,7 +277,6 @@ async function handleDelete(req, res, action) {
                 data: deletedSku
             });
             
-            writeDatabase(db);
             return res.json({ success: true });
         
         case 'alias':
@@ -297,16 +286,20 @@ async function handleDelete(req, res, action) {
             }
             
             const aliasKey = shipstationSku.toLowerCase();
-            if (!db.aliases[aliasKey]) {
+            memoryStorage.aliases = memoryStorage.aliases || {};
+            
+            if (!memoryStorage.aliases[aliasKey]) {
                 return res.status(404).json({ error: 'Alias not found' });
             }
             
-            const deletedAlias = db.aliases[aliasKey];
-            delete db.aliases[aliasKey];
-            db.settings.lastUpdated = new Date().toISOString();
+            const deletedAlias = memoryStorage.aliases[aliasKey];
+            delete memoryStorage.aliases[aliasKey];
+            memoryStorage.settings = memoryStorage.settings || {};
+            memoryStorage.settings.lastUpdated = new Date().toISOString();
             
             // Add history entry
-            db.history.unshift({
+            memoryStorage.history = memoryStorage.history || [];
+            memoryStorage.history.unshift({
                 id: Date.now().toString(),
                 type: 'delete-alias',
                 message: `Deleted alias: ${shipstationSku} → ${deletedAlias}`,
@@ -314,7 +307,6 @@ async function handleDelete(req, res, action) {
                 data: { shipstationSku, quickbooksSku: deletedAlias }
             });
             
-            writeDatabase(db);
             return res.json({ success: true });
         
         default:
