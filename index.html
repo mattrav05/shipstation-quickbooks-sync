@@ -502,6 +502,15 @@ PALLET RACK:CAO316
                 displayStatistics(data, processedData);
                 displayPreview(processedData);
                 
+                // Check if there are any matched items to process
+                const matchedItems = processedData.filter(item => item.matched);
+                
+                if (matchedItems.length === 0) {
+                    showStatus('processStatus', 'No shipments found for the selected date range or no SKUs matched. Try a different date range or check your SKU lookup table.', 'error');
+                    showProgress(100);
+                    return;
+                }
+                
                 // Generate IIF file
                 showStatus('processStatus', 'Generating IIF file...', 'info');
                 const iifResponse = await fetch('/api/generate-iif', {
@@ -510,7 +519,7 @@ PALLET RACK:CAO316
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        items: processedData.filter(item => item.matched),
+                        items: matchedItems,
                         inventoryAccount: document.getElementById('inventoryAccount').value,
                         startDate,
                         endDate
