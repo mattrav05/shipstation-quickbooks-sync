@@ -26,12 +26,17 @@ module.exports = async (req, res) => {
     try {
         const { startDate, endDate } = req.body;
         
+        console.log('Received request body:', req.body);
+        console.log('Start date:', startDate);
+        console.log('End date:', endDate);
+        
         if (!startDate || !endDate) {
             return res.status(400).json({ error: 'Start date and end date are required' });
         }
         
         // Create auth header
         const auth = Buffer.from(`${SHIPSTATION_API_KEY}:${SHIPSTATION_API_SECRET}`).toString('base64');
+        console.log('Auth header created successfully');
         
         // Initialize variables for pagination
         let allShipments = [];
@@ -104,6 +109,10 @@ module.exports = async (req, res) => {
                 });
             }
         });
+        
+        // Log final results
+        console.log(`Final results: ${allShipments.length} shipments, ${totalOrders} orders, ${Object.keys(consolidatedItems).length} unique SKUs`);
+        console.log('Consolidated items:', Object.keys(consolidatedItems).slice(0, 5)); // Log first 5 SKUs
         
         // Return consolidated data
         return res.status(200).json({
