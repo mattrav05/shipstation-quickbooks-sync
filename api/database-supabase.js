@@ -144,49 +144,83 @@ async function handlePost(req, res, action) {
         let importedCount = 0;
         
         if (uniqueNewSkus.length > 0) {
-          // Use upsert with ON CONFLICT DO NOTHING to handle any race conditions
-          try {
-            const { data, error } = await supabase
-              .from('skus')
-              .upsert(uniqueNewSkus.map(sku => ({
-                name: sku.name,
-                category: sku.category,
-                type: 'imported'
-              })), { 
-                onConflict: 'name',
-                ignoreDuplicates: true 
-              })
-              .select();
+          // Process in batches to handle large datasets
+          const BATCH_SIZE = 1000; // Supabase recommended batch size
+          const batches = [];
+          
+          for (let i = 0; i < uniqueNewSkus.length; i += BATCH_SIZE) {
+            batches.push(uniqueNewSkus.slice(i, i + BATCH_SIZE));
+          }
+          
+          console.log(`Processing ${uniqueNewSkus.length} SKUs in ${batches.length} batches of ${BATCH_SIZE}`);
+          
+          // Process each batch
+          for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+            const batch = batches[batchIndex];
+            console.log(`Processing batch ${batchIndex + 1}/${batches.length} with ${batch.length} SKUs`);
             
-            if (error) {
-              console.error('Upsert error:', error);
-              throw error;
-            }
-            
-            importedCount = data ? data.length : 0;
-            console.log(`Successfully imported ${importedCount} SKUs`);
-          } catch (error) {
-            console.error('Import failed, trying individual inserts:', error.message);
-            
-            // Fallback: try inserting one by one
-            for (const sku of uniqueNewSkus) {
-              try {
-                const { error: insertError } = await supabase
-                  .from('skus')
-                  .insert([{
-                    name: sku.name,
-                    category: sku.category,
-                    type: 'imported'
-                  }]);
+            try {
+              // Use regular insert with proper conflict handling
+              const { data, error } = await supabase
+                .from('skus')
+                .insert(batch.map(sku => ({
+                  name: sku.name,
+                  category: sku.category,
+                  type: 'imported'
+                })))
+                .select();
+              
+              if (error) {
+                // If batch insert fails, try individual inserts for this batch
+                console.log(`Batch ${batchIndex + 1} failed, trying individual inserts:`, error.message);
                 
-                if (!insertError) {
-                  importedCount++;
+                for (const sku of batch) {
+                  try {
+                    const { error: insertError } = await supabase
+                      .from('skus')
+                      .insert([{
+                        name: sku.name,
+                        category: sku.category,
+                        type: 'imported'
+                      }]);
+                    
+                    if (!insertError) {
+                      importedCount++;
+                    }
+                  } catch (individualError) {
+                    // Skip duplicates silently
+                  }
                 }
-              } catch (individualError) {
-                console.log(`Skipped duplicate SKU: ${sku.name}`);
+              } else {
+                const batchImported = data ? data.length : 0;
+                importedCount += batchImported;
+                console.log(`Batch ${batchIndex + 1} imported ${batchImported} SKUs`);
+              }
+            } catch (batchError) {
+              console.error(`Batch ${batchIndex + 1} error:`, batchError.message);
+              
+              // Fallback to individual inserts for this batch
+              for (const sku of batch) {
+                try {
+                  const { error: insertError } = await supabase
+                    .from('skus')
+                    .insert([{
+                      name: sku.name,
+                      category: sku.category,
+                      type: 'imported'
+                    }]);
+                  
+                  if (!insertError) {
+                    importedCount++;
+                  }
+                } catch (individualError) {
+                  // Skip duplicates silently
+                }
               }
             }
           }
+          
+          console.log(`Total imported: ${importedCount} SKUs out of ${uniqueNewSkus.length} attempted`);
         }
         
         // Add history entry
