@@ -30,6 +30,7 @@ module.exports = async (req, res) => {
         console.log('Orders API: Received request body:', req.body);
         console.log('Start date:', startDate);
         console.log('End date:', endDate);
+        console.log('Looking for order 30932 in this date range...');
         
         if (!startDate || !endDate) {
             return res.status(400).json({ error: 'Start date and end date are required' });

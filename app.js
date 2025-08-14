@@ -595,9 +595,8 @@ async function syncData() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                // Adjust for EDT timezone (UTC-4) - start 4 hours earlier to capture orders placed late previous day
-                startDate: new Date(startDate + 'T04:00:01').toISOString(),
-                endDate: new Date(endDate + 'T23:59:59').toISOString(),
+                startDate: startDate + 'T00:00:01',
+                endDate: endDate + 'T23:59:59',
                 includeCancelled: includeCancelled
             })
         });
