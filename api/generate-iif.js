@@ -90,6 +90,16 @@ module.exports = async (req, res) => {
             });
         }
         
+        // Create single transaction with multiple split lines
+        const docNum = `SS-ADJ-${new Date().toISOString().split('T')[0]}`;
+        
+        // Calculate total quantity for the transaction header
+        const totalQuantity = matchedItems.reduce((sum, item) => sum + item.quantity, 0);
+        
+        // TRNS line (header of transaction) - Inventory Adjustment format
+        iifContent += `TRNS\t${transactionId}\tINVADJ\t${adjustmentDate}\t${inventoryAccount || '1500 · Inventory'}\t\t\t-${totalQuantity}\t${docNum}\t${memo}\n`;
+        
+        // Add SPL lines for each item
         matchedItems.forEach(item => {
             // Clean the QuickBooks item name (remove any category prefix if present)
             let qbItemName = item.qbItem;
@@ -98,20 +108,12 @@ module.exports = async (req, res) => {
                 qbItemName = qbItemName.split(':').pop().trim();
             }
             
-            // Each item gets its own transaction for clarity
-            const docNum = `SS-ADJ-${new Date().toISOString().split('T')[0]}-${transactionId}`;
-            
-            // TRNS line (header of transaction) - Inventory Adjustment format
-            iifContent += `TRNS\t${transactionId}\tINVADJ\t${adjustmentDate}\t${inventoryAccount || '1500 · Inventory'}\t\t\t-${item.quantity}\t${docNum}\t${memo}\n`;
-            
             // SPL line (split line with item details) - Reduces inventory
             iifContent += `SPL\t${transactionId}\tINVADJ\t${adjustmentDate}\t${inventoryAccount || '1500 · Inventory'}\t\t\t-${item.quantity}\t${docNum}\tSold via ShipStation\t${qbItemName}\t-${item.quantity}\n`;
-            
-            // End transaction
-            iifContent += 'ENDTRNS\n';
-            
-            transactionId++;
         });
+        
+        // End transaction
+        iifContent += 'ENDTRNS\n';
         
         // Set appropriate headers for file download
         res.setHeader('Content-Type', 'text/plain');
