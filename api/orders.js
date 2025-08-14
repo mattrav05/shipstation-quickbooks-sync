@@ -25,7 +25,7 @@ module.exports = async (req, res) => {
     }
     
     try {
-        const { startDate, endDate, includeCancelled = false, useShipDate = true } = req.body;
+        const { startDate, endDate, includeCancelled = false, useShipDate = false } = req.body;
         
         console.log('Orders API: Received request body:', req.body);
         console.log('Start date:', startDate);
@@ -79,11 +79,17 @@ module.exports = async (req, res) => {
                     // Track all orders for debugging
                     const skuTracking = {};
                     
+                    // Log all statuses on first page for debugging
+                    if (page === 1) {
+                        const allStatuses = new Set(data.orders.map(o => o.orderStatus));
+                        console.log('All order statuses found:', Array.from(allStatuses));
+                    }
+                    
                     // Optionally filter out cancelled and rejected orders
                     const validOrders = includeCancelled ? data.orders : data.orders.filter(order => {
                         const status = (order.orderStatus || '').toLowerCase().trim();
                         // Include all orders except cancelled ones
-                        const isValid = !status.includes('cancel') && !status.includes('rejected');
+                        const isValid = !status.includes('cancel') && !status.includes('rejected') && !status.includes('void');
                         
                         // Track SKUs in excluded orders for debugging
                         if (!isValid && order.items) {
@@ -140,6 +146,11 @@ module.exports = async (req, res) => {
                     const sku = item.sku || 'UNKNOWN';
                     const quantity = parseInt(item.quantity) || 0;
                     totalItems += quantity;
+                    
+                    // Special logging for SI-P06C
+                    if (sku.toLowerCase().includes('p06')) {
+                        console.log(`Found ${quantity}x ${sku} in order ${order.orderNumber} (${order.orderStatus})`);
+                    }
                     
                     if (consolidatedItems[sku]) {
                         consolidatedItems[sku] += quantity;
