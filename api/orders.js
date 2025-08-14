@@ -39,6 +39,26 @@ module.exports = async (req, res) => {
         const auth = Buffer.from(`${SHIPSTATION_API_KEY}:${SHIPSTATION_API_SECRET}`).toString('base64');
         console.log('Auth header created successfully');
         
+        // First, let's check what stores are available
+        try {
+            console.log('Fetching available stores...');
+            const storesResponse = await axios.get('https://ssapi.shipstation.com/stores', {
+                headers: {
+                    'Authorization': `Basic ${auth}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (storesResponse.data && storesResponse.data.stores) {
+                console.log('Available stores:');
+                storesResponse.data.stores.forEach(store => {
+                    console.log(`  Store ID: ${store.storeId}, Name: ${store.storeName}, Active: ${store.active}`);
+                });
+            }
+        } catch (storeError) {
+            console.error('Error fetching stores:', storeError.message);
+        }
+        
         // Initialize variables for pagination
         let allOrders = [];
         let page = 1;
@@ -63,12 +83,14 @@ module.exports = async (req, res) => {
                         shipDateEnd: endDate,
                         page: page,
                         pageSize: pageSize,
+                        // Explicitly request all stores (omit storeId to get all)
                     } : {
                         // Use orderDate for when the order was placed
                         orderDateStart: startDate,
                         orderDateEnd: endDate,
                         page: page,
                         pageSize: pageSize,
+                        // Explicitly request all stores (omit storeId to get all)
                     }
                 });
                 
