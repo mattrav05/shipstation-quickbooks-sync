@@ -461,6 +461,40 @@ function searchSkus() {
     App.renderSkuTable(query);
 }
 
+// Debug function to search database for specific SKU
+async function debugSearchSku(searchQuery) {
+    try {
+        const response = await fetch(`/api/database-supabase?action=search-sku&query=${encodeURIComponent(searchQuery)}`);
+        
+        if (response.ok) {
+            const result = await response.json();
+            console.log('Database search results:', result);
+            
+            if (result.exactMatch && result.exactMatch.length > 0) {
+                console.log('✅ SKU EXISTS in database:', result.exactMatch[0]);
+                App.showNotification(`SKU "${searchQuery}" found in database! Check console for details.`, 'info');
+            } else {
+                console.log('❌ SKU NOT FOUND in database');
+                App.showNotification(`SKU "${searchQuery}" not found in database.`, 'warning');
+            }
+            
+            if (result.partialMatches && result.partialMatches.length > 0) {
+                console.log('Similar SKUs found:', result.partialMatches.map(s => s.name));
+            }
+            
+            return result;
+        } else {
+            throw new Error('Search failed');
+        }
+    } catch (error) {
+        console.error('Debug search error:', error);
+        App.showNotification('Search failed: ' + error.message, 'error');
+    }
+}
+
+// Add to window for debugging
+window.debugSearchSku = debugSearchSku;
+
 // Render SKU table
 App.renderSkuTable = function(searchQuery = '') {
     const tbody = document.getElementById('skuTableBody');
