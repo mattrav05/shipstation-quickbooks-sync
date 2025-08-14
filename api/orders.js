@@ -172,6 +172,11 @@ module.exports = async (req, res) => {
             }
             storeStats[storeId].orders++;
             
+            // Special logging for The Shelving Store (438369)
+            if (storeId === '438369') {
+                console.log(`Store 438369 order: ${order.orderNumber} (${order.orderStatus}) - Items: ${order.items?.length || 0}`);
+            }
+            
             if (order.items && Array.isArray(order.items)) {
                 order.items.forEach(item => {
                     const sku = item.sku || 'UNKNOWN';
