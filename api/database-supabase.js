@@ -226,6 +226,7 @@ async function handlePost(req, res, action) {
                 .from('skus')
                 .insert(batch.map(sku => ({
                   name: sku.name,
+                  full_path: sku.fullPath || sku.name,  // Store full QB path
                   category: sku.category,
                   type: 'imported'
                 })))
@@ -241,6 +242,7 @@ async function handlePost(req, res, action) {
                       .from('skus')
                       .insert([{
                         name: sku.name,
+                        full_path: sku.fullPath || sku.name,
                         category: sku.category,
                         type: 'imported'
                       }]);
@@ -267,6 +269,7 @@ async function handlePost(req, res, action) {
                     .from('skus')
                     .insert([{
                       name: sku.name,
+                      full_path: sku.fullPath || sku.name,
                       category: sku.category,
                       type: 'imported'
                     }]);
