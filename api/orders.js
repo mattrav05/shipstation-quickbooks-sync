@@ -74,9 +74,15 @@ module.exports = async (req, res) => {
                 
                 if (data.orders && data.orders.length > 0) {
                     // Filter out cancelled and rejected orders
+                    // ShipStation statuses: awaiting_payment, awaiting_shipment, shipped, on_hold, cancelled
                     const validOrders = data.orders.filter(order => {
-                        const status = order.orderStatus?.toLowerCase();
-                        return status !== 'cancelled' && status !== 'rejected_fulfillment';
+                        const status = (order.orderStatus || '').toLowerCase().trim();
+                        // Include all orders except cancelled ones
+                        const isValid = !status.includes('cancel') && !status.includes('rejected');
+                        if (!isValid) {
+                            console.log(`Excluding order ${order.orderNumber} with status: ${order.orderStatus}`);
+                        }
+                        return isValid;
                     });
                     
                     console.log(`Page ${page}: ${validOrders.length} valid orders (${data.orders.length - validOrders.length} excluded)`);
@@ -135,7 +141,15 @@ module.exports = async (req, res) => {
         // Log final results
         console.log(`Final results: ${allOrders.length} valid orders, ${totalOrders} processed, ${Object.keys(consolidatedItems).length} unique SKUs, ${totalItems} total items`);
         console.log('Order statuses:', orderStatuses);
-        console.log('Consolidated items (first 5):', Object.keys(consolidatedItems).slice(0, 5));
+        
+        // Log top SKUs with quantities for debugging
+        const topSkus = Object.entries(consolidatedItems)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 10);
+        console.log('Top 10 SKUs by quantity:');
+        topSkus.forEach(([sku, qty]) => {
+            console.log(`  ${sku}: ${qty} units`);
+        });
         
         // Return consolidated data
         return res.status(200).json({
