@@ -93,13 +93,13 @@ module.exports = async (req, res) => {
         // Create single transaction with multiple split lines
         const docNum = `SS-ADJ-${new Date().toISOString().split('T')[0]}`;
         
-        // Calculate total quantity for the transaction header
+        // Calculate total quantity for all items
         const totalQuantity = matchedItems.reduce((sum, item) => sum + item.quantity, 0);
         
-        // TRNS line (header of transaction) - Inventory Adjustment format
-        iifContent += `TRNS\t${transactionId}\tINVADJ\t${adjustmentDate}\t${inventoryAccount || '1500 · Inventory'}\t\t\t-${totalQuantity}\t${docNum}\t${memo}\n`;
+        // TRNS line (header) - uses the adjustment account (expense/COGS account)
+        iifContent += `TRNS\t${transactionId}\tINVADJ\t${adjustmentDate}\tInventory Adjustments\t\t\t0\t${docNum}\t${memo}\n`;
         
-        // Add SPL lines for each item
+        // Add SPL lines for each item with individual quantities
         matchedItems.forEach(item => {
             // Clean the QuickBooks item name (remove any category prefix if present)
             let qbItemName = item.qbItem;
@@ -108,8 +108,8 @@ module.exports = async (req, res) => {
                 qbItemName = qbItemName.split(':').pop().trim();
             }
             
-            // SPL line (split line with item details) - Reduces inventory
-            iifContent += `SPL\t${transactionId}\tINVADJ\t${adjustmentDate}\t${inventoryAccount || '1500 · Inventory'}\t\t\t-${item.quantity}\t${docNum}\tSold via ShipStation\t${qbItemName}\t-${item.quantity}\n`;
+            // SPL line - uses the inventory asset account
+            iifContent += `SPL\t${transactionId}\tINVADJ\t${adjustmentDate}\t${inventoryAccount || 'Inventory'}\t\t\t0\t${docNum}\tSold: ${qbItemName}\t${qbItemName}\t-${item.quantity}\n`;
         });
         
         // End transaction
