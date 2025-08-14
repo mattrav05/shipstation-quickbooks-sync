@@ -134,6 +134,7 @@ module.exports = async (req, res) => {
         let totalOrders = 0;
         let totalItems = 0;
         const orderStatuses = {};
+        const storeStats = {};
         
         allOrders.forEach(order => {
             totalOrders++;
@@ -142,15 +143,23 @@ module.exports = async (req, res) => {
             const status = order.orderStatus || 'unknown';
             orderStatuses[status] = (orderStatuses[status] || 0) + 1;
             
+            // Track store stats
+            const storeId = order.advancedOptions?.storeId || order.storeId || 'Unknown';
+            if (!storeStats[storeId]) {
+                storeStats[storeId] = { orders: 0, items: 0 };
+            }
+            storeStats[storeId].orders++;
+            
             if (order.items && Array.isArray(order.items)) {
                 order.items.forEach(item => {
                     const sku = item.sku || 'UNKNOWN';
                     const quantity = parseInt(item.quantity) || 0;
                     totalItems += quantity;
+                    storeStats[storeId].items += quantity;
                     
                     // Special logging for SI-P06C
                     if (sku.toLowerCase().includes('p06')) {
-                        console.log(`Found ${quantity}x ${sku} in order ${order.orderNumber} (${order.orderStatus})`);
+                        console.log(`Found ${quantity}x ${sku} in order ${order.orderNumber} (${order.orderStatus}) from store: ${order.advancedOptions?.storeId || order.storeId || 'Unknown'}`);
                     }
                     
                     if (consolidatedItems[sku]) {
@@ -165,6 +174,7 @@ module.exports = async (req, res) => {
         // Log final results
         console.log(`Final results: ${allOrders.length} valid orders, ${totalOrders} processed, ${Object.keys(consolidatedItems).length} unique SKUs, ${totalItems} total items`);
         console.log('Order statuses:', orderStatuses);
+        console.log('Store breakdown:', storeStats);
         
         // Log top SKUs with quantities for debugging
         const topSkus = Object.entries(consolidatedItems)

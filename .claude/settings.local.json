@@ -42,7 +42,8 @@
       "WebFetch(domain:supabase.com)",
       "Bash(SUPABASE_ACCESS_TOKEN=sbp_636708b095bb2802fb1b0b67ff187031cfe1f5a7 supabase db reset --password T2t2f2n2123!)",
       "WebSearch",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "WebFetch(domain:docs.shipstation.com)"
     ],
     "deny": [],
     "ask": []
