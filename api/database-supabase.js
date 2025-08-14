@@ -108,6 +108,41 @@ async function handleGet(req, res, action) {
           lastSync: lastSync?.created_at || null,
           lastExport: lastExport?.created_at || null
         });
+
+      case 'search-sku':
+        const { query } = req.query;
+        if (!query) {
+          return res.status(400).json({ error: 'Search query required' });
+        }
+        
+        console.log(`Searching for SKU: "${query}"`);
+        
+        // Search for exact match (case-insensitive)
+        const { data: exactMatch, error: exactError } = await supabase
+          .from('skus')
+          .select('*')
+          .ilike('name', query);
+        
+        if (exactError) throw exactError;
+        
+        // Also search for partial matches
+        const { data: partialMatches, error: partialError } = await supabase
+          .from('skus')
+          .select('*')
+          .ilike('name', `%${query}%`)
+          .limit(20);
+        
+        if (partialError) throw partialError;
+        
+        console.log(`Exact match results:`, exactMatch);
+        console.log(`Partial match results:`, partialMatches);
+        
+        return res.json({
+          query,
+          exactMatch: exactMatch || [],
+          partialMatches: partialMatches || [],
+          found: (exactMatch && exactMatch.length > 0)
+        });
       
       default:
         return res.status(400).json({ error: 'Invalid action' });
