@@ -507,7 +507,7 @@ async function getSkus() {
     const { data, error } = await supabase
       .from('skus')
       .select('*')
-      .order('created_at', { ascending: false })
+      .order('name', { ascending: true })  // Changed to order by name for consistent pagination
       .range(from, from + limit - 1);
     
     if (error) throw error;
@@ -522,6 +522,15 @@ async function getSkus() {
   }
   
   console.log(`Final SKU count retrieved: ${allSkus.length}`);
+  
+  // Verify the count matches
+  if (allSkus.length !== count) {
+    console.warn(`WARNING: Expected ${count} SKUs but got ${allSkus.length}. Some SKUs may be missing!`);
+  }
+  
+  // Sort by created_at descending after fetching all (for display purposes)
+  allSkus.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  
   return allSkus;
 }
 
