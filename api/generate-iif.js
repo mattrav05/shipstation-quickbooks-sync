@@ -96,8 +96,8 @@ module.exports = async (req, res) => {
         // Calculate total quantity for all items
         const totalQuantity = matchedItems.reduce((sum, item) => sum + item.quantity, 0);
         
-        // TRNS line (header) - uses the adjustment account (expense/COGS account)
-        iifContent += `TRNS\t${transactionId}\tINVADJ\t${adjustmentDate}\tInventory Adjustments\t\t\t0\t${docNum}\t${memo}\n`;
+        // TRNS line (header) - uses the adjustment account (expense/COGS account), no memo
+        iifContent += `TRNS\t${transactionId}\tINVADJ\t${adjustmentDate}\tInventory Adjustments\t\t\t0\t${docNum}\t\n`;
         
         // Add SPL lines for each item with individual quantities
         matchedItems.forEach(item => {
@@ -108,8 +108,8 @@ module.exports = async (req, res) => {
                 qbItemName = qbItemName.split(':').pop().trim();
             }
             
-            // SPL line - uses the inventory asset account
-            iifContent += `SPL\t${transactionId}\tINVADJ\t${adjustmentDate}\t${inventoryAccount || 'Inventory'}\t\t\t0\t${docNum}\tSold: ${qbItemName}\t${qbItemName}\t-${item.quantity}\n`;
+            // SPL line - uses Inventory account, no memo field
+            iifContent += `SPL\t${transactionId}\tINVADJ\t${adjustmentDate}\tInventory\t\t\t0\t${docNum}\t\t${qbItemName}\t-${item.quantity}\n`;
         });
         
         // End transaction
