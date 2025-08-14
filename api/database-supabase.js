@@ -612,20 +612,27 @@ function parseSkuText(text) {
     line = line.trim();
     if (!line) return;
     
-    // Keep the full QuickBooks item path (including parent:subitem hierarchy)
-    // Don't split on colon - QuickBooks needs the full path for subitems
-    const name = line;
+    // Store the full QuickBooks path for IIF generation
+    // But we'll match against just the item name part
+    const fullPath = line;
+    let displayName = line;
     
-    if (name && name.trim()) {
-      const normalizedName = name.trim();
-      const lowerName = normalizedName.toLowerCase();
+    // Extract just the item name for matching (after the last colon)
+    if (line.includes(':')) {
+      displayName = line.split(':').pop().trim();
+    }
+    
+    if (fullPath && fullPath.trim()) {
+      const normalizedPath = fullPath.trim();
+      const lowerName = displayName.toLowerCase();
       
       // Skip duplicates within the import text
       if (!seenSkus.has(lowerName)) {
         seenSkus.add(lowerName);
         skus.push({
-          name: normalizedName,
-          category: null,  // Don't extract category - keep full path
+          name: displayName,  // Use simplified name for matching
+          fullPath: normalizedPath,  // Store full path for IIF export
+          category: null,
           type: 'imported'
         });
       }

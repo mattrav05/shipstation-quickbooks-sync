@@ -653,8 +653,10 @@ App.processOrderData = function(consolidatedItems) {
     const skuLookup = {};
     
     // Build lookup table from our SKUs
+    // Map simplified names to full QuickBooks paths
     this.data.skus.forEach(sku => {
-        skuLookup[sku.name.toLowerCase()] = sku.name;
+        // Use fullPath if available (for QB subitems), otherwise use name
+        skuLookup[sku.name.toLowerCase()] = sku.fullPath || sku.name;
     });
     
     for (const [sku, quantity] of Object.entries(consolidatedItems)) {
