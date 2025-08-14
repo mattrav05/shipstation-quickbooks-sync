@@ -25,11 +25,12 @@ module.exports = async (req, res) => {
     }
     
     try {
-        const { startDate, endDate, includeCancelled = false, useShipDate = true } = req.body;
+        const { startDate, endDate, includeCancelled = false, useShipDate = false } = req.body;
         
         console.log('Orders API: Received request body:', req.body);
         console.log('Start date:', startDate);
         console.log('End date:', endDate);
+        console.log(`Using ${useShipDate ? 'SHIP DATE' : 'ORDER DATE'} filtering`);
         console.log('Looking for order 30932 in this date range...');
         
         if (!startDate || !endDate) {
