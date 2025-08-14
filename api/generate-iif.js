@@ -95,12 +95,8 @@ module.exports = async (req, res) => {
         
         // Add SPL lines for each item with individual quantities
         matchedItems.forEach(item => {
-            // Clean the QuickBooks item name (remove any category prefix if present)
-            let qbItemName = item.qbItem;
-            if (qbItemName.includes(':')) {
-                // If format is "CATEGORY:ITEM", use just the ITEM part
-                qbItemName = qbItemName.split(':').pop().trim();
-            }
+            // Use the full QuickBooks item name (including parent:subitem hierarchy if present)
+            const qbItemName = item.qbItem;
             
             // SPL line - uses Inventory account, ITEMADJ type, INVITEM shows actual item name
             iifContent += `SPL\t\tITEMADJ\t${adjustmentDate}\tInventory\t\t\t\t\t\t-${item.quantity}\t${qbItemName}\tN\n`;
