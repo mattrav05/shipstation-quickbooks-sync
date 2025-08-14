@@ -587,13 +587,17 @@ async function syncData() {
     try {
         App.showNotification('Syncing order data from ShipStation...', 'info');
         
+        // Check if user wants to include cancelled orders
+        const includeCancelled = document.getElementById('includeCancelled')?.checked || false;
+        
         // Fetch orders (not shipments - captures all sales including freight)
         const response = await fetch('/api/orders', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 startDate: startDate + 'T00:00:01',
-                endDate: endDate + 'T23:59:59'
+                endDate: endDate + 'T23:59:59',
+                includeCancelled: includeCancelled
             })
         });
         

@@ -93,9 +93,10 @@ module.exports = async (req, res) => {
                         
                         // Track SKUs in excluded orders for debugging
                         if (!isValid && order.items) {
+                            console.log(`EXCLUDING Order ${order.orderNumber} with status: ${order.orderStatus}`);
                             order.items.forEach(item => {
                                 if (item.sku && item.sku.toLowerCase().includes('p06')) {
-                                    console.log(`EXCLUDED: Order ${order.orderNumber} (${order.orderStatus}) contains ${item.quantity}x ${item.sku}`);
+                                    console.log(`  -> Contains ${item.quantity}x ${item.sku}`);
                                 }
                             });
                         }
