@@ -58,8 +58,8 @@ module.exports = async (req, res) => {
         let iifContent = '';
         
         // Transaction header for inventory adjustments
-        iifContent += '!TRNS\tTRNSID\tTRNSTYPE\tDATE\tACCNT\tNAME\tCLASS\tAMOUNT\tDOCNUM\tMEMO\n';
-        iifContent += '!SPL\tSPLID\tTRNSTYPE\tDATE\tACCNT\tNAME\tCLASS\tAMOUNT\tDOCNUM\tMEMO\tINVITEM\tQNTY\n';
+        iifContent += '!TRNS\tTRNSID\tTRNSTYPE\tDATE\tACCNT\tNAME\tCLASS\tAMOUNT\tDOCNUM\tMEMO\tPONUM\n';
+        iifContent += '!SPL\tSPLID\tTRNSTYPE\tDATE\tACCNT\tNAME\tCLASS\tAMOUNT\tDOCNUM\tMEMO\tINVITEM\tQNTY\tVALADJ\n';
         iifContent += '!ENDTRNS\n';
         
         // Create inventory adjustment transactions
@@ -90,8 +90,8 @@ module.exports = async (req, res) => {
         // Calculate total quantity for all items
         const totalQuantity = matchedItems.reduce((sum, item) => sum + item.quantity, 0);
         
-        // TRNS line (header) - uses the adjustment account (expense/COGS account), no memo
-        iifContent += `TRNS\t${transactionId}\tINVADJ\t${adjustmentDate}\tInventory Adjustments\t\t\t0\t${docNum}\t\n`;
+        // TRNS line (header) - uses the adjustment account, ITEMADJ transaction type
+        iifContent += `TRNS\t${transactionId}\tITEMADJ\t${adjustmentDate}\tInventory Adjustments\t\t\t0\t${docNum}\t\t\n`;
         
         // Add SPL lines for each item with individual quantities
         matchedItems.forEach(item => {
@@ -102,8 +102,8 @@ module.exports = async (req, res) => {
                 qbItemName = qbItemName.split(':').pop().trim();
             }
             
-            // SPL line - uses Inventory account, no memo field
-            iifContent += `SPL\t${transactionId}\tINVADJ\t${adjustmentDate}\tInventory\t\t\t0\t${docNum}\t\t${qbItemName}\t-${item.quantity}\n`;
+            // SPL line - uses Inventory account, ITEMADJ type, VALADJ = N (quantity adjustment only)
+            iifContent += `SPL\t${transactionId}\tITEMADJ\t${adjustmentDate}\tInventory\t\t\t0\t${docNum}\t\t${qbItemName}\t-${item.quantity}\tN\n`;
         });
         
         // End transaction
