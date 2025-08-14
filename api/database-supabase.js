@@ -612,17 +612,9 @@ function parseSkuText(text) {
     line = line.trim();
     if (!line) return;
     
-    let name, category = null;
-    
-    if (line.includes(':')) {
-      // Format: CATEGORY:SKU
-      const parts = line.split(':');
-      category = parts[0].trim();
-      name = parts.slice(1).join(':').trim();
-    } else {
-      // Standalone SKU
-      name = line;
-    }
+    // Keep the full QuickBooks item path (including parent:subitem hierarchy)
+    // Don't split on colon - QuickBooks needs the full path for subitems
+    const name = line;
     
     if (name && name.trim()) {
       const normalizedName = name.trim();
@@ -633,7 +625,7 @@ function parseSkuText(text) {
         seenSkus.add(lowerName);
         skus.push({
           name: normalizedName,
-          category: category || null,
+          category: null,  // Don't extract category - keep full path
           type: 'imported'
         });
       }
