@@ -25,7 +25,7 @@ module.exports = async (req, res) => {
     }
     
     try {
-        const { startDate, endDate } = req.body;
+        const { startDate, endDate, includeCancelled = false, useShipDate = true } = req.body;
         
         console.log('Orders API: Received request body:', req.body);
         console.log('Start date:', startDate);
@@ -57,15 +57,18 @@ module.exports = async (req, res) => {
                         'Authorization': `Basic ${auth}`,
                         'Content-Type': 'application/json'
                     },
-                    params: {
+                    params: useShipDate ? {
+                        // Use shipDate for when the order was shipped (matches ShipStation reports)
+                        shipDateStart: startDate,
+                        shipDateEnd: endDate,
+                        page: page,
+                        pageSize: pageSize,
+                    } : {
                         // Use orderDate for when the order was placed
                         orderDateStart: startDate,
                         orderDateEnd: endDate,
                         page: page,
                         pageSize: pageSize,
-                        // Exclude cancelled orders - get orders that are:
-                        // awaiting_payment, awaiting_shipment, pending_fulfillment, shipped, on_hold
-                        // We'll filter out cancelled and rejected_fulfillment
                     }
                 });
                 
@@ -73,15 +76,24 @@ module.exports = async (req, res) => {
                 console.log(`Page ${page} returned ${data.orders ? data.orders.length : 0} orders`);
                 
                 if (data.orders && data.orders.length > 0) {
-                    // Filter out cancelled and rejected orders
-                    // ShipStation statuses: awaiting_payment, awaiting_shipment, shipped, on_hold, cancelled
-                    const validOrders = data.orders.filter(order => {
+                    // Track all orders for debugging
+                    const skuTracking = {};
+                    
+                    // Optionally filter out cancelled and rejected orders
+                    const validOrders = includeCancelled ? data.orders : data.orders.filter(order => {
                         const status = (order.orderStatus || '').toLowerCase().trim();
                         // Include all orders except cancelled ones
                         const isValid = !status.includes('cancel') && !status.includes('rejected');
-                        if (!isValid) {
-                            console.log(`Excluding order ${order.orderNumber} with status: ${order.orderStatus}`);
+                        
+                        // Track SKUs in excluded orders for debugging
+                        if (!isValid && order.items) {
+                            order.items.forEach(item => {
+                                if (item.sku && item.sku.toLowerCase().includes('p06')) {
+                                    console.log(`EXCLUDED: Order ${order.orderNumber} (${order.orderStatus}) contains ${item.quantity}x ${item.sku}`);
+                                }
+                            });
                         }
+                        
                         return isValid;
                     });
                     
