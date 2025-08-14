@@ -58,8 +58,8 @@ module.exports = async (req, res) => {
         let iifContent = '';
         
         // Transaction header for inventory adjustments
-        iifContent += '!TRNS\tTRNSID\tTRNSTYPE\tDATE\tACCNT\tNAME\tCLASS\tAMOUNT\tDOCNUM\tMEMO\tDUEDATE\n';
-        iifContent += '!SPL\tSPLID\tTRNSTYPE\tDATE\tACCNT\tNAME\tCLASS\tAMOUNT\tDOCNUM\tMEMO\tINVITEM\tQNTY\tPONUM\tVALADJ\n';
+        iifContent += '!TRNS\tTRNSID\tTRNSTYPE\tDATE\tACCNT\tNAME\tCLASS\tAMOUNT\tDOCNUM\tMEMO\tDUEDATE\tTOPRINT\tPONUM\n';
+        iifContent += '!SPL\tSPLID\tTRNSTYPE\tDATE\tACCNT\tNAME\tCLASS\tAMOUNT\tDOCNUM\tMEMO\tINVITEM\tQNTY\tVALADJ\n';
         iifContent += '!ENDTRNS\n';
         
         // Create inventory adjustment transactions
@@ -91,7 +91,7 @@ module.exports = async (req, res) => {
         const totalQuantity = matchedItems.reduce((sum, item) => sum + item.quantity, 0);
         
         // TRNS line (header) - uses the adjustment account, ITEMADJ transaction type
-        iifContent += `TRNS\t${transactionId}\tITEMADJ\t${adjustmentDate}\tInventory Adjustments\t\t\t\t\t\t${adjustmentDate}\n`;
+        iifContent += `TRNS\t${transactionId}\tITEMADJ\t${adjustmentDate}\tInventory Adjustments\t\t\t\t\t\t${adjustmentDate}\tN\t\n`;
         
         // Add SPL lines for each item with individual quantities
         matchedItems.forEach(item => {
@@ -103,7 +103,7 @@ module.exports = async (req, res) => {
             }
             
             // SPL line - uses Inventory account, ITEMADJ type, INVITEM shows actual item name
-            iifContent += `SPL\t${transactionId}\tITEMADJ\t${adjustmentDate}\tInventory\t\t\t\t\t\t${qbItemName}\t-${item.quantity}\t\tN\n`;
+            iifContent += `SPL\t${transactionId}\tITEMADJ\t${adjustmentDate}\tInventory\t\t\t\t\t\t${qbItemName}\t-${item.quantity}\tN\n`;
         });
         
         // End transaction
