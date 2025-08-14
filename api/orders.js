@@ -97,6 +97,16 @@ module.exports = async (req, res) => {
                 const data = response.data;
                 console.log(`Page ${page} returned ${data.orders ? data.orders.length : 0} orders`);
                 
+                // Log all order numbers on this page to see if 30932 is present
+                if (data.orders && page === 1) {
+                    const orderNumbers = data.orders.map(o => o.orderNumber);
+                    console.log('All order numbers on page 1:', orderNumbers.slice(0, 10), '... (showing first 10)');
+                    
+                    // Specifically check for order 30932
+                    const has30932 = orderNumbers.includes('30932');
+                    console.log(`Order 30932 found on page 1: ${has30932}`);
+                }
+                
                 if (data.orders && data.orders.length > 0) {
                     // Track all orders for debugging
                     const skuTracking = {};
@@ -172,9 +182,19 @@ module.exports = async (req, res) => {
             }
             storeStats[storeId].orders++;
             
-            // Special logging for The Shelving Store (438369)
+            // Special logging for The Shelving Store (438369) and specific order 30932
             if (storeId === '438369') {
                 console.log(`Store 438369 order: ${order.orderNumber} (${order.orderStatus}) - Items: ${order.items?.length || 0}`);
+            }
+            
+            // Look specifically for order 30932
+            if (order.orderNumber === '30932') {
+                console.log(`FOUND order 30932! Store: ${storeId}, Status: ${order.orderStatus}, Items: ${order.items?.length || 0}`);
+                if (order.items) {
+                    order.items.forEach(item => {
+                        console.log(`  Item: ${item.sku} x ${item.quantity}`);
+                    });
+                }
             }
             
             if (order.items && Array.isArray(order.items)) {
