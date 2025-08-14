@@ -57,12 +57,6 @@ module.exports = async (req, res) => {
         // Generate IIF content
         let iifContent = '';
         
-        // IIF Header
-        iifContent += '!HDR\tPROD\tVER\tREL\tIIFVER\tDATE\tTIME\tACCNTNT\tACCNTNTSPLITTIME\n';
-        iifContent += 'HDR\tQuickBooks Pro\tVersion 2023\tRelease R1\t1\t' + 
-                      new Date().toLocaleDateString() + '\t' + 
-                      new Date().toTimeString().split(' ')[0] + '\tN\t0\n';
-        
         // Transaction header for inventory adjustments
         iifContent += '!TRNS\tTRNSID\tTRNSTYPE\tDATE\tACCNT\tNAME\tCLASS\tAMOUNT\tDOCNUM\tMEMO\n';
         iifContent += '!SPL\tSPLID\tTRNSTYPE\tDATE\tACCNT\tNAME\tCLASS\tAMOUNT\tDOCNUM\tMEMO\tINVITEM\tQNTY\n';
