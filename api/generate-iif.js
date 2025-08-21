@@ -1,27 +1,21 @@
 /*
- * QuickBooks IIF (Intuit Interchange Format) Generator
+ * QuickBooks IIF (Intuit Interchange Format) Generator - Sales Receipt
  * 
- * REQUIRED FIELDS FOR QUICKBOOKS COMPATIBILITY:
+ * REQUIRED FIELDS FOR SALES RECEIPT COMPATIBILITY:
  * 
- * 1. HDR Section (Header):
- *    - PROD: Product name (QuickBooks Pro/Premier/Enterprise)
- *    - VER: Version
- *    - IIFVER: IIF version (usually 1)
- *    - DATE/TIME: Current date and time
- * 
- * 2. TRNS Section (Transaction):
- *    - TRNSTYPE: INVADJ (Inventory Adjustment)
+ * 1. TRNS Section (Transaction Header):
+ *    - TRNSTYPE: CASH SALE (Sales Receipt)
  *    - DATE: Transaction date (MM/DD/YYYY format)
- *    - ACCNT: Account name (must exist in QuickBooks)
- *    - AMOUNT: Total adjustment amount
+ *    - NAME: Customer name
+ *    - AMOUNT: Total sale amount ($0.00 for tracking only)
  *    - DOCNUM: Unique document number
- *    - MEMO: Description
  * 
- * 3. SPL Section (Split Line):
- *    - ACCNT: Account being adjusted
- *    - AMOUNT: Line amount (negative reduces inventory)
+ * 2. SPL Section (Split Lines):
+ *    - ACCNT: Income Account
+ *    - AMOUNT: Line amount (negative for income)
  *    - INVITEM: Item name (must EXACTLY match QuickBooks item)
- *    - QNTY: Quantity being adjusted (negative reduces)
+ *    - QNTY: Quantity sold
+ *    - PRICE: Unit price ($0.00 for tracking only)
  * 
  * CRITICAL REQUIREMENTS:
  * - Item names must EXACTLY match QuickBooks items (case-sensitive)
@@ -57,14 +51,14 @@ module.exports = async (req, res) => {
         // Generate IIF content
         let iifContent = '';
         
-        // Transaction header for inventory adjustments
-        iifContent += '!TRNS\tTRNSID\tTRNSTYPE\tDATE\tACCNT\tNAME\tCLASS\tAMOUNT\tDOCNUM\tMEMO\tTOPRINT\tDUEDATE\tPONUM\n';
-        iifContent += '!SPL\tSPLID\tTRNSTYPE\tDATE\tACCNT\tNAME\tCLASS\tAMOUNT\tDOCNUM\tMEMO\tQNTY\tINVITEM\tVALADJ\n';
+        // Transaction header for sales receipts
+        iifContent += '!TRNS\tTRNSID\tTRNSTYPE\tDATE\tACCNT\tNAME\tCLASS\tAMOUNT\tDOCNUM\tMEMO\tCLEAR\tTOPRINT\tNAMEISTAXABLE\tADDR1\tADDR2\tADDR3\tADDR4\tADDR5\tDUEDATE\tTERMS\tPAID\tPAYMETH\tSHIPVIA\tSHIPDATE\tOTHER1\tREP\tFOB\tPONUM\tINVTITLE\tINVMEMO\tSADDR1\tSADDR2\tSADDR3\tSADDR4\tSADDR5\tPAYITEM\tYEARTODATE\tWAGEBASE\tEXTRA\tTOSEND\tISAJE\n';
+        iifContent += '!SPL\tSPLID\tTRNSTYPE\tDATE\tACCNT\tNAME\tCLASS\tAMOUNT\tDOCNUM\tMEMO\tCLEAR\tQNTY\tPRICE\tINVITEM\tPAYMETH\tTAXABLE\tVALADJ\tREIMBEXP\tSERVICEDATE\tOTHER2\tOTHER3\tPAYITEM\tYEARTODATE\tWAGEBASE\tEXTRA\n';
         iifContent += '!ENDTRNS\n';
         
-        // Create inventory adjustment transactions
-        let transactionId = 1;
-        const adjustmentDate = new Date().toLocaleDateString('en-US');
+        // Create sales receipt transaction
+        const customerName = 'Shelving.com + TSS+ Walmart Target Driven';
+        const transactionDate = new Date().toLocaleDateString('en-US');
         const memo = `ShipStation sync ${startDate} to ${endDate}`;
         
         // Filter to ONLY matched items to prevent QuickBooks errors
@@ -84,22 +78,18 @@ module.exports = async (req, res) => {
             });
         }
         
-        // Create single transaction with multiple split lines
-        const docNum = `SS-ADJ-${new Date().toISOString().split('T')[0]}`;
+        // Create single sales receipt with multiple line items
+        const docNum = `SS-SALE-${new Date().toISOString().split('T')[0]}`;
         
-        // Calculate total quantity for all items
-        const totalQuantity = matchedItems.reduce((sum, item) => sum + item.quantity, 0);
+        // TRNS line (transaction header) - $0 sales receipt for tracking purposes
+        iifContent += `TRNS\t\tCASH SALE\t${transactionDate}\tChecking\t${customerName}\t\t0.00\t${docNum}\t${memo}\tN\tY\tY\t${customerName}\t\t\t\t\t${transactionDate}\t\tN\t\t\t${transactionDate}\t\t\t\t\t\t\t\t\t\t\t\t\t\tN\tN\n`;
         
-        // TRNS line (header) - uses the adjustment account, ITEMADJ transaction type
-        iifContent += `TRNS\t\tITEMADJ\t${adjustmentDate}\tInventory Adjustments\t\t\t\t\t\tN\t${adjustmentDate}\t\n`;
-        
-        // Add SPL lines for each item with individual quantities
+        // Add SPL lines for each item - each line represents sold quantity at $0
         matchedItems.forEach(item => {
-            // Use the full QuickBooks item name (including parent:subitem hierarchy if present)
             const qbItemName = item.qbItem;
             
-            // SPL line - uses Inventory account, ITEMADJ type, INVITEM shows actual item name
-            iifContent += `SPL\t\tITEMADJ\t${adjustmentDate}\tInventory\t\t\t\t\t\t-${item.quantity}\t${qbItemName}\tN\n`;
+            // SPL line - Income account with negative amount (income), $0 price
+            iifContent += `SPL\t\tCASH SALE\t${transactionDate}\tIncome Account\t\t\t0.00\t${docNum}\t\tN\t${item.quantity}\t0.00\t${qbItemName}\t\tY\tN\tNOTHING\t\t\t\t\t\t\t\t\n`;
         });
         
         // End transaction
@@ -107,7 +97,7 @@ module.exports = async (req, res) => {
         
         // Set appropriate headers for file download
         res.setHeader('Content-Type', 'text/plain');
-        res.setHeader('Content-Disposition', `attachment; filename="inventory_adjustment_${new Date().toISOString().split('T')[0]}.iif"`);
+        res.setHeader('Content-Disposition', `attachment; filename="sales_receipt_${new Date().toISOString().split('T')[0]}.iif"`);
         
         return res.status(200).send(iifContent);
         
