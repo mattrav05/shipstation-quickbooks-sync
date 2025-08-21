@@ -88,8 +88,8 @@ module.exports = async (req, res) => {
         matchedItems.forEach(item => {
             const qbItemName = item.qbItem;
             
-            // SPL line - Income account with negative amount (income), $0 price
-            iifContent += `SPL\t\tCASH SALE\t${transactionDate}\tIncome Account\t\t\t0.00\t${docNum}\t\tN\t${item.quantity}\t0.00\t${qbItemName}\t\tY\tN\tNOTHING\t\t\t\t\t\t\t\t\n`;
+            // SPL line - Income account with negative amount (income), $0 price, non-taxable
+            iifContent += `SPL\t\tCASH SALE\t${transactionDate}\tIncome Account\t\t\t0.00\t${docNum}\t\tN\t${item.quantity}\t0.00\t${qbItemName}\t\tN\tN\tNOTHING\t\t\t\t\t\t\t\t\n`;
         });
         
         // End transaction
